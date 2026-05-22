@@ -3,7 +3,7 @@
 A premium, full-featured **Spotify Desktop Client Clone** engineered with a sleek modern design system and advanced audio delivery mechanisms. 
 
 Built using a **FastAPI backend** utilizing `yt-dlp` and `ffmpeg` postprocessors, combined with a **Vite + React frontend** supporting offline caching and standard-to-lossless audio streaming paths.
-
+---
 ---
 
 ## ✨ Features
