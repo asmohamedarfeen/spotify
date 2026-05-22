@@ -1,17 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from ytmusicapi import YTMusic
 import os
 import glob
 import yt_dlp
 from fastapi.responses import FileResponse, JSONResponse
+import requests
 
 app = FastAPI(title="Spotify Clone API")
 
 # Setup CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -24,6 +25,8 @@ from typing import List
 
 class BulkSearchRequest(BaseModel):
     queries: List[str]
+
+VALID_QUALITIES = {"standard", "lossless"}
 
 @app.get("/api/search")
 def search(q: str):
@@ -78,6 +81,45 @@ def get_vibe_score(s1: str, s2: str) -> float:
         elif in_s1 != in_s2:
             score -= 0.05
     return score
+
+def normalize_quality(quality: str) -> str:
+    quality = (quality or "standard").lower().strip()
+    return quality if quality in VALID_QUALITIES else "standard"
+
+def find_downloaded_files(video_id: str, quality: str):
+    suffix = "_lossless" if normalize_quality(quality) == "lossless" else ""
+    return glob.glob(os.path.join(DOWNLOADS_DIR, f"{video_id}{suffix}.*"))
+
+def media_type_for_path(file_path: str) -> str:
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".flac":
+        return "audio/flac"
+    if ext == ".wav":
+        return "audio/wav"
+    if ext == ".mp3":
+        return "audio/mpeg"
+    if ext == ".webm":
+        return "audio/webm"
+    return "audio/mp4"
+
+def file_quality(file_path: str) -> str:
+    return "lossless" if os.path.splitext(file_path)[1].lower() == ".flac" else "standard"
+
+def download_with_fallback(video_id: str, quality: str):
+    quality = normalize_quality(quality)
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    opts = ydl_opts_lossless if quality == "lossless" else ydl_opts_standard
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
+    except Exception as exc:
+        if quality != "lossless":
+            raise exc
+        with yt_dlp.YoutubeDL(ydl_opts_standard) as ydl:
+            ydl.download([url])
+        return "standard"
+    files = find_downloaded_files(video_id, quality)
+    return file_quality(files[0]) if files else "standard"
 
 @app.get("/api/recommendations")
 def recommendations(videoId: str, title: str = "", artist: str = ""):
@@ -167,37 +209,21 @@ ydl_opts_lossless = {
 @app.post("/api/download/{videoId}")
 def download_song(videoId: str, quality: str = "standard"):
     try:
-        suffix = "_lossless" if quality == "lossless" else ""
-        existing_files = glob.glob(os.path.join(DOWNLOADS_DIR, f"{videoId}{suffix}.*"))
+        quality = normalize_quality(quality)
+        existing_files = find_downloaded_files(videoId, quality)
         if existing_files:
-            return {"status": "success", "message": "Song already downloaded", "videoId": videoId}
+            actual = file_quality(existing_files[0])
+            return {"status": "success", "message": "Song already downloaded", "videoId": videoId, "qualityRequested": quality, "qualityActual": actual}
 
-        url = f"https://www.youtube.com/watch?v={videoId}"
-        opts = ydl_opts_lossless if quality == "lossless" else ydl_opts_standard
-        try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                ydl.download([url])
-        except Exception as e:
-            if quality == "lossless":
-                # Fallback to standard download if transcoding/ffmpeg fails
-                with yt_dlp.YoutubeDL(ydl_opts_standard) as ydl:
-                    ydl.download([url])
-                std_files = glob.glob(os.path.join(DOWNLOADS_DIR, f"{videoId}.*"))
-                if std_files:
-                    std_file = std_files[0]
-                    ext = os.path.splitext(std_file)[1]
-                    import shutil
-                    fallback_path = os.path.join(DOWNLOADS_DIR, f"{videoId}_lossless{ext}")
-                    shutil.copyfile(std_file, fallback_path)
-                else:
-                    raise e
-            else:
-                raise e
+        actual_quality = download_with_fallback(videoId, quality)
 
         # Confirm download
-        downloaded = glob.glob(os.path.join(DOWNLOADS_DIR, f"{videoId}{suffix}.*"))
+        downloaded = find_downloaded_files(videoId, quality)
+        if not downloaded and quality == "lossless":
+            downloaded = find_downloaded_files(videoId, "standard")
         if downloaded:
-            return {"status": "success", "message": "Song downloaded successfully", "videoId": videoId}
+            actual_quality = file_quality(downloaded[0]) if downloaded else actual_quality
+            return {"status": "success", "message": "Song downloaded successfully", "videoId": videoId, "qualityRequested": quality, "qualityActual": actual_quality}
         else:
             return {"status": "error", "message": "Download completed but file not found"}
     except Exception as e:
@@ -206,46 +232,18 @@ def download_song(videoId: str, quality: str = "standard"):
 @app.get("/api/stream/{videoId}")
 def stream_song(videoId: str, quality: str = "standard"):
     try:
-        suffix = "_lossless" if quality == "lossless" else ""
-        existing_files = glob.glob(os.path.join(DOWNLOADS_DIR, f"{videoId}{suffix}.*"))
+        quality = normalize_quality(quality)
+        existing_files = find_downloaded_files(videoId, quality)
         if not existing_files:
             # Trigger download on-the-fly if not cached on server
-            url = f"https://www.youtube.com/watch?v={videoId}"
-            opts = ydl_opts_lossless if quality == "lossless" else ydl_opts_standard
-            try:
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    ydl.download([url])
-            except Exception as e:
-                if quality == "lossless":
-                    # Fallback to standard
-                    with yt_dlp.YoutubeDL(ydl_opts_standard) as ydl:
-                        ydl.download([url])
-                    std_files = glob.glob(os.path.join(DOWNLOADS_DIR, f"{videoId}.*"))
-                    if std_files:
-                        std_file = std_files[0]
-                        ext = os.path.splitext(std_file)[1]
-                        import shutil
-                        fallback_path = os.path.join(DOWNLOADS_DIR, f"{videoId}_lossless{ext}")
-                        shutil.copyfile(std_file, fallback_path)
-                    else:
-                        raise e
-                else:
-                    raise e
-            existing_files = glob.glob(os.path.join(DOWNLOADS_DIR, f"{videoId}{suffix}.*"))
+            download_with_fallback(videoId, quality)
+            existing_files = find_downloaded_files(videoId, quality)
+            if not existing_files and quality == "lossless":
+                existing_files = find_downloaded_files(videoId, "standard")
 
         if existing_files:
             file_path = existing_files[0]
-            ext = os.path.splitext(file_path)[1].lower()
-            if ext == ".flac":
-                media_type = "audio/flac"
-            elif ext == ".wav":
-                media_type = "audio/wav"
-            elif ext == ".mp3":
-                media_type = "audio/mpeg"
-            elif ext == ".webm":
-                media_type = "audio/webm"
-            else:
-                media_type = "audio/mp4"
+            media_type = media_type_for_path(file_path)
             return FileResponse(file_path, media_type=media_type, filename=os.path.basename(file_path))
         else:
             return JSONResponse(status_code=404, content={"status": "error", "message": "Song not found or failed to download"})
@@ -256,14 +254,55 @@ def stream_song(videoId: str, quality: str = "standard"):
 def downloaded_songs():
     try:
         existing_files = glob.glob(os.path.join(DOWNLOADS_DIR, "*.*"))
-        video_ids = [os.path.splitext(os.path.basename(f))[0] for f in existing_files]
-        # Only valid 11 char youtube video ids
-        video_ids = [vid for vid in video_ids if len(vid) == 11]
-        return {"status": "success", "data": video_ids}
+        songs = {}
+        for file_path in existing_files:
+            stem = os.path.splitext(os.path.basename(file_path))[0]
+            is_lossless_name = stem.endswith("_lossless")
+            video_id = stem.replace("_lossless", "")
+            if len(video_id) != 11:
+                continue
+            quality = file_quality(file_path)
+            existing = songs.get(video_id)
+            if not existing or quality == "lossless" or is_lossless_name:
+                songs[video_id] = {"videoId": video_id, "quality": quality, "fileName": os.path.basename(file_path)}
+        return {"status": "success", "data": list(songs.values())}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.get("/api/lyrics")
+def lyrics(title: str = Query(""), artist: str = Query("")):
+    try:
+        if not title.strip():
+            return JSONResponse(status_code=400, content={"status": "error", "message": "title is required"})
+        response = requests.get(
+            "https://lrclib.net/api/search",
+            params={"track_name": title, "artist_name": artist},
+            timeout=8,
+        )
+        response.raise_for_status()
+        matches = response.json()
+        if not matches:
+            return {"status": "success", "data": {"available": False, "lines": [], "plainLyrics": "", "syncedLyrics": ""}}
+        match = matches[0]
+        plain = match.get("plainLyrics") or ""
+        synced = match.get("syncedLyrics") or ""
+        lines = [line for line in plain.splitlines() if line.strip()]
+        return {
+            "status": "success",
+            "data": {
+                "available": bool(plain or synced),
+                "trackName": match.get("trackName"),
+                "artistName": match.get("artistName"),
+                "albumName": match.get("albumName"),
+                "duration": match.get("duration"),
+                "plainLyrics": plain,
+                "syncedLyrics": synced,
+                "lines": lines,
+            },
+        }
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"status": "error", "message": f"Lyrics unavailable: {e}"})
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

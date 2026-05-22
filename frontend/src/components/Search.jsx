@@ -1,199 +1,140 @@
-import React, { useState } from 'react';
+import { CheckCircle, Download, Heart, Loader2, Play, Plus, Search as SearchIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { api } from '../api/client';
 import { usePlayer } from '../context/PlayerContext';
-import { Search as SearchIcon, Play, Plus, Download, CheckCircle, Loader2 } from 'lucide-react';
+import { formatDuration, normalizeTracks } from '../utils/tracks';
 
 export default function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('All');
-  const { 
-    playSong, 
-    addToQueue, 
-    downloadedSongs, 
-    downloadingSongs, 
-    downloadSong, 
-    isOfflineMode 
+  const [activeFilter, setActiveFilter] = useState('Songs');
+  const {
+    addToQueue,
+    downloadedSongs,
+    downloadingSongs,
+    downloadSong,
+    isOfflineMode,
+    likedSongs,
+    playSong,
+    toggleLikedSong,
   } = usePlayer();
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (!query) return;
-
+  const handleSearch = async (event) => {
+    event.preventDefault();
+    if (!query.trim()) return;
     setLoading(true);
-    fetch(`http://localhost:8000/api/search?q=${encodeURIComponent(query)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          setResults(data.data);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  };
-
-  const handlePlay = (song) => {
-    playSong({
-      videoId: song.videoId,
-      title: song.title,
-      artist: song.artists?.[0]?.name || 'Unknown Artist',
-      thumbnail: song.thumbnails?.[0]?.url || ''
-    });
-  };
-
-  const handleAddToQueue = (song) => {
-    addToQueue({
-      videoId: song.videoId,
-      title: song.title,
-      artist: song.artists?.[0]?.name || 'Unknown Artist',
-      thumbnail: song.thumbnails?.[0]?.url || ''
-    });
-  };
-
-  const filters = ['All', 'Songs', 'Artists', 'Albums'];
-
-  // Client-side visual filtering to simulate a high-fidelity experience
-  const getFilteredResults = () => {
-    if (activeFilter === 'All') return results;
-    if (activeFilter === 'Songs') {
-      return results.filter(r => r.title.toLowerCase().includes('song') || r.videoId);
+    try {
+      const data = await api.search(query);
+      setResults(normalizeTracks(data.data));
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
     }
-    if (activeFilter === 'Artists') {
-      // Return songs grouped or matching names
-      return results.filter((_, idx) => idx % 2 === 0);
-    }
-    return results.filter((_, idx) => idx % 3 === 0);
   };
 
-  const displayResults = getFilteredResults();
+  const displayResults = useMemo(() => {
+    if (activeFilter === 'Downloaded') return results.filter((track) => downloadedSongs[track.videoId]);
+    return results;
+  }, [activeFilter, downloadedSongs, results]);
+
+  const topResult = displayResults[0];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Search Sticky Header */}
-      <div className="view-header" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="view-page">
+      <div className="topbar sticky">
         <form onSubmit={handleSearch} className="search-container">
-          <SearchIcon size={20} color="#b3b3b3" />
+          <SearchIcon size={20} />
           <input
-            type="text"
             className="search-input"
-            placeholder="What do you want to listen to?"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="What do you want to play?"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
           />
         </form>
-
-        {results.length > 0 && (
-          <div className="filter-pills-row">
-            {filters.map(filter => (
-              <button
-                key={filter}
-                className={`filter-pill ${activeFilter === filter ? 'active' : ''}`}
-                onClick={() => setActiveFilter(filter)}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Grid Results */}
-      <div className="view-content">
-        {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', color: 'var(--text-subdued)' }}>
-            <p>Searching tracks...</p>
-          </div>
-        )}
-        
-        {displayResults.length > 0 ? (
-          <>
-            <h2 className="section-title">Search results</h2>
-            <div className="grid-container">
-              {displayResults.map((song, index) => {
-                const normalizedSong = {
-                  videoId: song.videoId,
-                  title: song.title,
-                  artist: song.artists?.[0]?.name || 'Unknown Artist',
-                  thumbnail: song.thumbnails?.[0]?.url || ''
-                };
-                const isDownloaded = !!downloadedSongs[song.videoId];
-                const isDownloading = downloadingSongs[song.videoId] === 'downloading';
-                const isPlayable = !isOfflineMode || isDownloaded;
+      <div className="filter-pills-row">
+        {['Songs', 'Artists', 'Albums', 'Downloaded'].map((filter) => (
+          <button key={filter} className={`filter-pill ${activeFilter === filter ? 'active' : ''}`} onClick={() => setActiveFilter(filter)}>
+            {filter}
+          </button>
+        ))}
+      </div>
 
+      {loading && (
+        <div className="center-state">
+          <Loader2 className="spin" size={22} />
+          <span>Searching Spotify-style catalog...</span>
+        </div>
+      )}
+
+      {!loading && !query && (
+        <div className="search-empty">
+          <SearchIcon size={56} />
+          <h2>Search what you want to hear</h2>
+          <p>Find songs, artists, albums, and build your listening queue.</p>
+        </div>
+      )}
+
+      {!loading && topResult && (
+        <div className="search-layout">
+          <section>
+            <h2 className="section-title">Top result</h2>
+            <article className="top-result-card" onClick={() => playSong(topResult, { context: displayResults })}>
+              <img src={topResult.thumbnail} alt={topResult.title} />
+              <h3>{topResult.title}</h3>
+              <p>{topResult.artistName}</p>
+              <button className="play-btn always-visible" onClick={(event) => { event.stopPropagation(); playSong(topResult, { context: displayResults }); }}>
+                <Play fill="black" size={22} />
+              </button>
+            </article>
+          </section>
+
+          <section>
+            <h2 className="section-title">Songs</h2>
+            <div className="track-table">
+              {displayResults.map((track, index) => {
+                const isDownloaded = Boolean(downloadedSongs[track.videoId]);
+                const isDownloading = downloadingSongs[track.videoId] === 'downloading';
+                const isPlayable = !isOfflineMode || isDownloaded;
                 return (
-                  <div 
-                    key={`${song.videoId}-${index}`} 
-                    className="card" 
-                    onClick={() => isPlayable && handlePlay(song)}
-                    style={{
-                      opacity: isPlayable ? 1 : 0.4,
-                      cursor: isPlayable ? 'pointer' : 'not-allowed',
-                      position: 'relative'
-                    }}
+                  <div
+                    key={`${track.videoId}-${index}`}
+                    className={`track-row ${!isPlayable ? 'disabled' : ''}`}
+                    onClick={() => isPlayable && playSong(track, { context: displayResults })}
                   >
-                    <div className="card-img-container">
-                      <img 
-                        src={song.thumbnails?.[song.thumbnails.length - 1]?.url || ''} 
-                        alt={song.title} 
-                        className="card-img" 
-                      />
-                      {isPlayable && (
-                        <>
-                          <button className="play-btn" onClick={(e) => { e.stopPropagation(); handlePlay(song); }}>
-                            <Play fill="black" size={24} />
-                          </button>
-                          <button className="queue-btn-card" onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }} title="Add to Queue">
-                            <Plus size={20} />
-                          </button>
-                        </>
-                      )}
+                    <button className="row-index" onClick={(event) => { event.stopPropagation(); if (isPlayable) playSong(track, { context: displayResults }); }}>
+                      <span>{index + 1}</span>
+                      <Play fill="currentColor" size={14} />
+                    </button>
+                    <img src={track.thumbnail} alt="" />
+                    <div className="track-meta">
+                      <strong>{track.title}</strong>
+                      <span>{track.artistName}</span>
                     </div>
-                    <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'space-between' }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{song.title}</span>
-                      
-                      {/* Song Download Indicators */}
-                      {isDownloaded ? (
-                        <span title="Downloaded" style={{ color: '#1db954', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-                          <CheckCircle size={14} fill="currentColor" color="black" />
-                        </span>
-                      ) : isDownloading ? (
-                        <span title="Downloading..." style={{ color: '#1db954', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-                          <Loader2 className="animate-spin" size={14} />
-                        </span>
-                      ) : (
-                        <button 
-                          title="Download Song"
-                          onClick={(e) => { e.stopPropagation(); downloadSong(normalizedSong); }}
-                          style={{
-                            background: 'transparent', border: 'none', color: 'var(--text-subdued)', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-subdued)'}
-                        >
-                          <Download size={14} />
-                        </button>
-                      )}
-                    </div>
-                    <div className="card-subtitle">{song.artists?.[0]?.name || 'Unknown Artist'}</div>
+                    <button className={`icon-only ${likedSongs[track.videoId] ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); toggleLikedSong(track); }} title="Save to Liked Songs">
+                      <Heart size={16} fill={likedSongs[track.videoId] ? 'currentColor' : 'none'} />
+                    </button>
+                    {isDownloaded ? (
+                      <CheckCircle size={16} className="green-icon" />
+                    ) : (
+                      <button className="icon-only" onClick={(event) => { event.stopPropagation(); downloadSong(track); }} title="Download">
+                        {isDownloading ? <Loader2 className="spin" size={16} /> : <Download size={16} />}
+                      </button>
+                    )}
+                    <button className="icon-only" onClick={(event) => { event.stopPropagation(); addToQueue(track); }} title="Add to queue">
+                      <Plus size={16} />
+                    </button>
+                    <span className="duration">{formatDuration(track.duration)}</span>
                   </div>
                 );
               })}
             </div>
-          </>
-        ) : (
-          !loading && !query && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', justifyContent: 'center', color: 'var(--text-subdued)', gap: '16px', padding: '80px 0' }}>
-              <SearchIcon size={64} style={{ opacity: 0.2 }} />
-              <p style={{ fontWeight: '600', color: 'white' }}>Search what you want to hear</p>
-              <p style={{ fontSize: '13px', textAlign: 'center', maxWidth: '300px' }}>Find songs, artists, albums, or dynamic playlists in one unified browser search.</p>
-            </div>
-          )
-        )}
-      </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

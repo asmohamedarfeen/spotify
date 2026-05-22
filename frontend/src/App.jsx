@@ -1,46 +1,39 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Player from './components/Player';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './components/Home';
-import Search from './components/Search';
-import { PlayerProvider, usePlayer } from './context/PlayerContext';
+import NowPlaying from './components/NowPlaying';
+import Player from './components/Player';
 import Playlists from './components/Playlists';
 import QueueSidebar from './components/QueueSidebar';
-import NowPlaying from './components/NowPlaying';
+import Search from './components/Search';
+import Sidebar from './components/Sidebar';
+import { PlayerProvider, usePlayer } from './context/PlayerContext';
 
 function AppContent() {
-  const { showNowPlaying } = usePlayer();
+  const { isNowPlayingOpen } = usePlayer();
 
   return (
     <Router>
       <div className="app-container">
         <Sidebar />
-        <div className="main-view">
-          {showNowPlaying ? (
-            <NowPlaying />
-          ) : (
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/playlists" element={<Playlists />} />
-            </Routes>
-          )}
-        </div>
-        <QueueSidebar />
+        <main className="main-view">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/playlists" element={<Playlists />} />
+            <Route path="/liked" element={<Playlists mode="liked" />} />
+          </Routes>
+        </main>
+        {isNowPlayingOpen ? <NowPlaying /> : <QueueSidebar />}
       </div>
       <Player />
     </Router>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <PlayerProvider>
       <AppContent />
     </PlayerProvider>
   );
 }
-
-
-export default App;

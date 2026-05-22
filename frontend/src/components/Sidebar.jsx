@@ -1,32 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { Download, Heart, Home, Library, ListMusic, Plus, Search } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, Library, Plus, Music } from 'lucide-react';
+import { usePlayer } from '../context/PlayerContext';
 
 export default function Sidebar() {
-  const [playlists, setPlaylists] = useState([]);
+  const { downloadedSongs, playlists } = usePlayer();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const loadPlaylists = () => {
-      const saved = localStorage.getItem('spotify-clone-playlists');
-      if (saved) {
-        setPlaylists(JSON.parse(saved));
-      }
-    };
-    loadPlaylists();
-    
-    // Poll to keep library playlists in sidebar synced in real-time
-    const interval = setInterval(loadPlaylists, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleCreatePlaylistClick = () => {
-    navigate('/playlists');
-  };
+  const downloadedCount = Object.keys(downloadedSongs).length;
 
   return (
-    <div className="sidebar">
-      {/* Top Box: Navigation */}
+    <aside className="sidebar">
       <div className="sidebar-nav">
         <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Home size={22} />
@@ -38,52 +20,62 @@ export default function Sidebar() {
         </NavLink>
       </div>
 
-      {/* Bottom Box: Your Library */}
-      <div className="sidebar-library">
+      <section className="sidebar-library">
         <div className="library-header">
-          <div className="library-title" onClick={() => navigate('/playlists')}>
+          <button className="library-title" onClick={() => navigate('/playlists')}>
             <Library size={22} />
             <span>Your Library</span>
-          </div>
-          <button className="library-add-btn" onClick={handleCreatePlaylistClick} title="Create Playlist">
+          </button>
+          <button className="library-add-btn" onClick={() => navigate('/playlists')} title="Create Playlist">
             <Plus size={18} />
           </button>
         </div>
 
+        <div className="library-filter-row">
+          <NavLink to="/playlists" className="library-chip">Playlists</NavLink>
+          <NavLink to="/liked" className="library-chip">Songs</NavLink>
+        </div>
+
         <div className="library-scroll">
-          {playlists.length > 0 ? (
-            playlists.map((pl) => (
-              <NavLink 
-                key={pl.id} 
-                to="/playlists" 
-                className="library-item"
-              >
-                <div className="library-item-art">
-                  <Music size={18} />
-                </div>
-                <div className="library-item-info">
-                  <span className="library-item-name">{pl.name}</span>
-                  <span className="library-item-subtitle">Playlist • {pl.songs?.length || 0} songs</span>
-                </div>
-              </NavLink>
-            ))
-          ) : (
-            <div style={{ padding: '16px 8px', fontSize: '12px', color: 'var(--text-subdued)', lineHeight: '1.6' }}>
-              <p style={{ fontWeight: '600', color: 'white', marginBottom: '4px' }}>Create your first playlist</p>
-              <p>It's easy, we'll help you</p>
-              <button 
-                onClick={handleCreatePlaylistClick}
-                style={{
-                  marginTop: '12px', background: 'white', border: 'none', color: 'black',
-                  fontWeight: '700', fontSize: '12px', padding: '6px 16px', borderRadius: '500px', cursor: 'pointer'
-                }}
-              >
-                Create Playlist
-              </button>
+          <NavLink to="/liked" className="library-item">
+            <div className="library-item-art liked-art">
+              <Heart size={18} fill="currentColor" />
+            </div>
+            <div className="library-item-info">
+              <span className="library-item-name">Liked Songs</span>
+              <span className="library-item-subtitle">Playlist</span>
+            </div>
+          </NavLink>
+
+          <div className="library-item">
+            <div className="library-item-art">
+              <Download size={18} />
+            </div>
+            <div className="library-item-info">
+              <span className="library-item-name">Downloaded</span>
+              <span className="library-item-subtitle">{downloadedCount} songs</span>
+            </div>
+          </div>
+
+          {playlists.length > 0 ? playlists.map((playlist) => (
+            <NavLink key={playlist.id} to="/playlists" className="library-item">
+              <div className="library-item-art">
+                <ListMusic size={18} />
+              </div>
+              <div className="library-item-info">
+                <span className="library-item-name">{playlist.name}</span>
+                <span className="library-item-subtitle">Playlist - {playlist.songs?.length || 0} songs</span>
+              </div>
+            </NavLink>
+          )) : (
+            <div className="library-empty">
+              <p>Create your first playlist</p>
+              <span>Paste song names and build a playlist.</span>
+              <button onClick={() => navigate('/playlists')}>Create Playlist</button>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </section>
+    </aside>
   );
 }

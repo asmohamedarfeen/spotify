@@ -1,76 +1,72 @@
-# 🎧 Spotify Desktop Clone (Premium Audio System)
+# Spotify Desktop Clone
 
-A premium, full-featured **Spotify Desktop Client Clone** engineered with a sleek modern design system and advanced audio delivery mechanisms. 
+A local Spotify-style desktop music app built with a FastAPI backend and a Vite + React frontend. The UI follows Spotify's desktop structure: left navigation and library, central Home/Search/Playlist pages, right Now Playing or Queue panel, and a persistent bottom player.
 
-Built using a **FastAPI backend** utilizing `yt-dlp` and `ffmpeg` postprocessors, combined with a **Vite + React frontend** supporting offline caching and standard-to-lossless audio streaming paths.
----
----
+## Features
 
-## ✨ Features
+- Spotify-like desktop shell with Home, Search, Your Library, Liked Songs, Now Playing, Queue, and bottom playback controls.
+- YouTube Music search, home charts, bulk playlist creation, autoplay recommendations, and queue management.
+- Standard YouTube playback through the embedded player, plus backend audio streaming for downloaded or lossless-mode playback.
+- Offline song caching in IndexedDB with local download state.
+- Liked songs, recently played songs, playlist storage, shuffle, repeat, autoplay, lyrics panel, and local device/audio-quality popovers.
+- Honest HiFi status: the frontend shows lossless only when the backend actually serves FLAC.
 
-### 🎨 Pixel-Perfect Spotify Desktop Theme
-* **Pure Dark Mode**: Crafted with official canvas backdrops (`#000000`), container frames (`#121212`), and Spotify Green (`#1db954`).
-* **Circular Typography**: Styled with the beautiful Google Inter font family.
-* **Interactive Controls**: Hover-reactive progress and volume seek bars, and a unified split-panel frame layout.
+## Project Structure
 
-### 🟢 Lossless Audio Quality (HiFi)
-* **Direct Server-Side FLAC Transcoding**: Integrates `FFmpegExtractAudio` postprocessors in `yt-dlp` to transcode streams to pristine `.flac` formats on-the-fly.
-* **Online Lossless Streaming Bypass**: Bypasses the YouTube iframe player, feeding direct high-bitrate FLAC streams directly into standard browser HTML5 `<audio>` players.
-* **Pulsing HiFi badge**: Shows an active glowing indicator badge when streaming in lossless quality.
-* **Glassmorphic Quality Popover**: Beautiful controls settings menu next to the volume bar to easily toggle streaming and download quality modes.
+```text
+spotify/
+  backend/
+    main.py
+    requirements.txt
+    downloads/
+  frontend/
+    src/
+      api/
+      components/
+      context/
+      utils/
+    package.json
+```
 
-### 📂 Listen Offline (Premium Capability)
-* **On-Device IndexedDB Cache**: Caches audio Blobs directly in browser storage (`spotify-clone-offline`), permitting large binary files to be stored and played locally.
-* **Dual-Player Synchronization**: Seamlessly swaps control timeline seek and volume states between YouTube player and standard `<audio>` player tag.
-* **Simulated Offline Mode**: Quick-switch offline toggle that dims non-downloaded tracks and grey-outs cursor actions to demonstrate offline fidelity.
+## Requirements
 
----
+- Python 3.10+
+- Node.js 20+
+- FFmpeg available on PATH for FLAC extraction
 
-## 🛠 Tech Stack
+## Run Backend
 
-* **Frontend**: React, Vite, Tailwind/Vanilla CSS, Lucide Icons, IndexedDB
-* **Backend**: FastAPI (Python), `yt-dlp`, `ffmpeg`, `YTMusicAPI`
-
----
-
-## 🚀 Getting Started
-
-### 1. Run the FastAPI Backend
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate
+venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
 ```
-*Backend runs on `http://localhost:8000`*
 
-### 2. Run the Vite Frontend
+Backend runs at `http://localhost:8000`.
+
+## Run Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*Frontend runs on `http://localhost:5174`*
 
----
+Vite usually starts at `http://localhost:5173`. If that port is busy, use the URL printed by Vite.
 
-## 💎 Custom Verification Results (Lossless Transcoding)
-The transcoding backend is verified to compile and deliver high-fidelity FLAC audio containers successfully:
-```text
-=== VERIFYING LOSSLESS DOWNLOAD ENDPOINT ===
-Lossless Download Response: {
-  "status": "success",
-  "message": "Song downloaded successfully",
-  "videoId": "kJQP7kiw5Fk"
-}
+## Checks
 
-=== VERIFYING DOWNLOADS DIRECTORY CONTENT ===
-Downloaded files on server disk:
- - kJQP7kiw5Fk_lossless.flac
+```bash
+cd backend
+python -m compileall .
 
-=== VERIFYING STREAMING ROUTE AND HEADERS ===
-Content-Type Header: audio/flac
-Content-Length Header: 60551450
-Status Code: 200
+cd ..\frontend
+npm run lint
+npm run build
 ```
+
+## Notes
+
+This is a local clone-style project, not an official Spotify client. Spotify Connect, official Spotify catalog playback, and official account features are represented with local equivalents where possible.
