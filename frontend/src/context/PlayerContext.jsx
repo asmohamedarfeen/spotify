@@ -144,6 +144,7 @@ export function PlayerProvider({ children }) {
     const normalized = normalizeTrack(song);
     if (!normalized?.videoId) return;
     setPlaybackError('');
+    setRecommendations([]);
     setCurrentSong((previous) => {
       if (previous && previous.videoId !== normalized.videoId) {
         setHistory((items) => [...items, previous]);
@@ -178,6 +179,7 @@ export function PlayerProvider({ children }) {
     const normalized = normalizeTrack(song);
     if (!normalized?.videoId) return;
     setQueue((items) => items.filter((_, index) => index !== indexToRemove));
+    setRecommendations([]);
     setCurrentSong((previous) => {
       if (previous && previous.videoId !== normalized.videoId) {
         setHistory((historyItems) => [...historyItems, previous]);
@@ -217,6 +219,7 @@ export function PlayerProvider({ children }) {
       const [nextSong, ...rest] = playableQueue;
       setQueue(rest);
       if (currentSong) setHistory((items) => [...items, currentSong]);
+      setRecommendations([]);
       setCurrentSong(nextSong);
       addRecent(nextSong);
       setIsPlaying(true);
@@ -226,6 +229,7 @@ export function PlayerProvider({ children }) {
     if (isAutoplayEnabled && recommendations.length > 0) {
       const [nextSong] = recommendations;
       if (currentSong) setHistory((items) => [...items, currentSong]);
+      setRecommendations([]);
       setCurrentSong(nextSong);
       addRecent(nextSong);
       setIsPlaying(true);
@@ -247,6 +251,7 @@ export function PlayerProvider({ children }) {
     const prevSong = history[history.length - 1];
     setHistory((items) => items.slice(0, -1));
     if (currentSong) setQueue((items) => [currentSong, ...items]);
+    setRecommendations([]);
     setCurrentSong(prevSong);
     setIsPlaying(true);
     setPlaybackError('');

@@ -2,6 +2,7 @@ import { CheckCircle, Download, Heart, Loader2, Play, Plus, Search as SearchIcon
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { usePlayer } from '../context/PlayerContext';
+import { searchResultPlaybackOptions } from '../utils/playerLogic';
 import { canSearch, normalizeSearchTerm } from '../utils/searchLogic';
 import { formatDuration, normalizeTracks } from '../utils/tracks';
 
@@ -86,6 +87,9 @@ export default function Search() {
   }, [activeFilter, downloadedSongs, results]);
 
   const topResult = displayResults[0];
+  const playSearchResult = useCallback((track) => {
+    playSong(track, searchResultPlaybackOptions());
+  }, [playSong]);
 
   return (
     <div className="view-page">
@@ -144,11 +148,11 @@ export default function Search() {
         <div className="search-layout">
           <section>
             <h2 className="section-title">Top result</h2>
-            <article className="top-result-card" onClick={() => playSong(topResult, { context: displayResults })}>
+            <article className="top-result-card" onClick={() => playSearchResult(topResult)}>
               <img src={topResult.thumbnail} alt={topResult.title} />
               <h3>{topResult.title}</h3>
               <p>{topResult.artistName}</p>
-              <button className="play-btn always-visible" onClick={(event) => { event.stopPropagation(); playSong(topResult, { context: displayResults }); }}>
+              <button className="play-btn always-visible" onClick={(event) => { event.stopPropagation(); playSearchResult(topResult); }}>
                 <Play fill="black" size={22} />
               </button>
             </article>
@@ -165,9 +169,9 @@ export default function Search() {
                   <div
                     key={`${track.videoId}-${index}`}
                     className={`track-row ${!isPlayable ? 'disabled' : ''}`}
-                    onClick={() => isPlayable && playSong(track, { context: displayResults })}
+                    onClick={() => isPlayable && playSearchResult(track)}
                   >
-                    <button className="row-index" onClick={(event) => { event.stopPropagation(); if (isPlayable) playSong(track, { context: displayResults }); }}>
+                    <button className="row-index" onClick={(event) => { event.stopPropagation(); if (isPlayable) playSearchResult(track); }}>
                       <span>{index + 1}</span>
                       <Play fill="currentColor" size={14} />
                     </button>

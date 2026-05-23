@@ -6,6 +6,7 @@ import {
   findPlaylistById,
   mergeSmartRecommendations,
   nextShuffleMode,
+  searchResultPlaybackOptions,
   uniqueTracks,
 } from './playerLogic.js';
 
@@ -45,4 +46,8 @@ test('mergeSmartRecommendations injects unique recommendation tracks', () => {
   const merged = mergeSmartRecommendations(queue, recommendations, '1');
   assert.deepEqual(uniqueTracks(merged).map((track) => track.videoId), merged.map((track) => track.videoId));
   assert(merged.some((track) => track.videoId === '5' && track.isSmartRecommendation));
+});
+
+test('searchResultPlaybackOptions clears search result queue context', () => {
+  assert.deepEqual(searchResultPlaybackOptions(), { context: [] });
 });

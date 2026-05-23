@@ -11,7 +11,7 @@ backend/__pycache__/
 
 # Distribution / Build outputs
 dist/
-frontend/dist/
+
 
 # Local dev server logs
 backend-server*.log

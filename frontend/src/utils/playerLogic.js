@@ -62,3 +62,7 @@ export function findPlaylistById(playlists = [], playlistId) {
   if (!playlistId) return null;
   return playlists.find((playlist) => String(playlist.id) === String(playlistId)) || null;
 }
+
+export function searchResultPlaybackOptions() {
+  return { context: [] };
+}
