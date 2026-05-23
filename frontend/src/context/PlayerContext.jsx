@@ -46,6 +46,7 @@ export function PlayerProvider({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(true);
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const [isMobileNowPlayingOpen, setIsMobileNowPlayingOpen] = useState(false);
   const [lyrics, setLyrics] = useState(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [isShuffleActive, setIsShuffleActive] = useState(false);
@@ -337,6 +338,7 @@ export function PlayerProvider({ children }) {
     isPlaying,
     queue,
     history,
+    isMobileNowPlayingOpen,
     recommendations,
     isAutoplayEnabled,
     isSidebarOpen,
@@ -369,6 +371,7 @@ export function PlayerProvider({ children }) {
     toggleSidebar: () => setIsSidebarOpen((value) => !value),
     toggleNowPlaying: () => setIsNowPlayingOpen((value) => !value),
     setNowPlayingOpen: setIsNowPlayingOpen,
+    setMobileNowPlayingOpen: setIsMobileNowPlayingOpen,
     toggleLyrics: () => setIsLyricsOpen((value) => !value),
     setLyricsOpen: setIsLyricsOpen,
     toggleOfflineMode,
@@ -383,7 +386,7 @@ export function PlayerProvider({ children }) {
   }), [
     addToQueue, audioQuality, clearQueue, createPlaylist, currentSong, cycleRepeatMode, deleteDownloadedSong,
     deletePlaylist, downloadedSongs, downloadingSongs, downloadSong, history, isAutoplayEnabled,
-    isLyricsOpen, isNowPlayingOpen, isOfflineMode, isPlaying, isShuffleActive, isSidebarOpen,
+    isLyricsOpen, isMobileNowPlayingOpen, isNowPlayingOpen, isOfflineMode, isPlaying, isShuffleActive, isSidebarOpen,
     likedSongs, lyrics, lyricsLoading, moveQueueItem, playFromQueue, playNext, playPrevious, playSong, playlists,
     queue, recommendations, recentlyPlayed, removeFromQueue, removeTrackFromPlaylist, repeatMode, restartSignal,
     setAudioQuality, toggleLikedSong, toggleOfflineMode, togglePlay, toggleShuffle,

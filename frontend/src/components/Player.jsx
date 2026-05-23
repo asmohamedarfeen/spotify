@@ -33,6 +33,7 @@ export default function Player() {
     restartSignal,
     setAudioQuality,
     setLyricsOpen,
+    setMobileNowPlayingOpen,
     setNowPlayingOpen,
     toggleAutoplay,
     toggleOfflineMode,
@@ -217,119 +218,146 @@ export default function Player() {
     (!isOfflineMode && audioQuality === 'lossless') ||
     (isOfflineMode && downloadedSongs[currentSong.videoId]?.quality === 'lossless')
   );
+  const miniProgressPct = duration ? (progress / duration) * 100 : 0;
 
   return (
-    <footer className="player-bar">
-      <div className="player-left">
-        {currentSong ? (
-          <>
-            <img src={currentSong.thumbnail} alt="" className="now-playing-img" onClick={() => setNowPlayingOpen(true)} />
-            <div className="now-playing-info">
-              <button className="now-playing-title" onClick={() => setNowPlayingOpen(true)}>{currentSong.title}</button>
-              <span className="now-playing-artist">{currentSong.artistName}</span>
-            </div>
-            {isCurrentLossless && <span className="lossless-badge">HiFi</span>}
-          </>
-        ) : <span className="muted">No song selected</span>}
-      </div>
-
-      <div className="player-center">
-        <div className="player-controls">
-          <button className={`control-btn ${isShuffleActive ? 'active' : ''}`} onClick={toggleShuffle} title={isShuffleActive ? 'Disable shuffle' : 'Enable shuffle'} aria-pressed={isShuffleActive}>
-            <Shuffle size={18} />
-          </button>
-          <button className="control-btn" onClick={playPrevious} disabled={!hasPrevious} title="Previous">
-            <SkipBack size={20} />
-          </button>
-          <button className="play-pause-btn" onClick={togglePlay} disabled={!currentSong}>
-            {isPlaying ? <Pause fill="black" size={17} /> : <Play fill="black" size={17} />}
-          </button>
-          <button className="control-btn" onClick={playNext} disabled={!hasNext} title="Next">
-            <SkipForward size={20} />
-          </button>
-          <button className={`control-btn ${repeatMode !== 'off' ? 'active' : ''}`} onClick={cycleRepeatMode} title={repeatMode === 'off' ? 'Enable repeat' : repeatMode === 'all' ? 'Enable repeat one' : 'Disable repeat'} aria-pressed={repeatMode !== 'off'}>
-            {repeatIcon}
-          </button>
-        </div>
-        <div className="progress-container">
-          <span className="time-text">{formatTime(progress)}</span>
-          <div className="progress-bar-container" onClick={handleProgressChange}>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }} />
-              <div className="progress-thumb" style={{ left: `${duration ? (progress / duration) * 100 : 0}%` }} />
-            </div>
+    <>
+      {/* ---- MOBILE MINI PLAYER ---- */}
+      {currentSong && (
+        <div className="mobile-mini-player" onClick={() => setMobileNowPlayingOpen(true)}>
+          <div className="mini-player-progress">
+            <div className="mini-player-progress-fill" style={{ width: `${miniProgressPct}%` }} />
           </div>
-          <span className="time-text">{formatTime(duration)}</span>
-        </div>
-      </div>
-
-      <div className="player-right">
-        <button className={`control-btn ${isLyricsOpen ? 'active' : ''}`} onClick={() => setLyricsOpen((value) => !value)} title="Lyrics" aria-pressed={isLyricsOpen}>
-          <Mic2 size={18} />
-        </button>
-        <button className={`control-btn ${!isNowPlayingOpen ? 'active' : ''}`} onClick={() => setNowPlayingOpen(false)} title="Queue" aria-pressed={!isNowPlayingOpen}>
-          <ListMusic size={18} />
-        </button>
-        <button className={`control-btn ${isOfflineMode ? 'active' : ''}`} onClick={toggleOfflineMode} title={isOfflineMode ? 'Disable offline mode' : 'Enable offline mode'} aria-pressed={isOfflineMode}>
-          <WifiOff size={18} />
-        </button>
-        <button className={`control-btn ${isAutoplayEnabled ? 'active' : ''}`} onClick={toggleAutoplay} title={isAutoplayEnabled ? 'Disable autoplay' : 'Enable autoplay'} aria-pressed={isAutoplayEnabled}>
-          <Radio size={18} />
-        </button>
-        <div className="popover-wrap">
-          <button className={`quality-button ${audioQuality === 'lossless' ? 'active' : ''}`} onClick={() => setQualityOpen((value) => !value)} title="Audio quality">HiFi</button>
-          {qualityOpen && (
-            <div className="small-popover">
-              <h4>Audio quality</h4>
-              <button className={audioQuality === 'standard' ? 'selected' : ''} onClick={() => setAudioQuality('standard')}>Standard</button>
-              <button className={audioQuality === 'lossless' ? 'selected' : ''} onClick={() => setAudioQuality('lossless')}>Lossless FLAC</button>
-              <p>HiFi appears only when the backend serves a real FLAC file.</p>
+          <div className="mini-player-content">
+            <img src={currentSong.thumbnail} alt="" className="mini-player-img" />
+            <div className="mini-player-info">
+              <span className="mini-player-title">{currentSong.title}</span>
+              <span className="mini-player-artist">{currentSong.artistName}</span>
             </div>
-          )}
-        </div>
-        <div className="popover-wrap">
-          <button className="control-btn" onClick={() => setDeviceOpen((value) => !value)} title="Connect to a device">
-            <Laptop size={18} />
-          </button>
-          {deviceOpen && (
-            <div className="small-popover device-popover">
-              <h4>Connect to a device</h4>
-              <div className="device-row active-device"><Laptop size={16} /><span>This browser</span><CheckCircle2 size={15} /></div>
-              <p>External Spotify Connect devices are not available in this local clone.</p>
-            </div>
-          )}
-        </div>
-        <button className="control-btn" onClick={() => setIsMuted((value) => !value)} title={isMuted ? 'Unmute' : 'Mute'} aria-pressed={isMuted}>
-          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
-        <div className="volume-bar-container" onClick={handleVolumeChange}>
-          <div className="volume-bar">
-            <div className="volume-fill" style={{ width: `${isMuted ? 0 : volume}%` }} />
-            <div className="volume-thumb" style={{ left: `${isMuted ? 0 : volume}%` }} />
+            <button
+              className="mini-player-play"
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <Pause size={22} fill="white" /> : <Play size={22} fill="white" />}
+            </button>
           </div>
         </div>
-      </div>
-
-      {usesHtmlAudio && audioUrl && (
-        <audio
-          ref={audioRef}
-          src={audioUrl}
-          onEnded={playNext}
-          onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-          onTimeUpdate={() => setProgress(audioRef.current?.currentTime || 0)}
-        />
       )}
 
-      {currentSong && !usesHtmlAudio && (
-        <div className="hidden-player">
-          <YouTube
-            videoId={currentSong.videoId}
-            opts={{ height: '1', width: '1', playerVars: { autoplay: 1, controls: 0 } }}
-            onReady={onReady}
-            onStateChange={onStateChange}
+      {/* ---- DESKTOP FULL PLAYER BAR ---- */}
+      <footer className="player-bar">
+        <div className="player-left">
+          {currentSong ? (
+            <>
+              <img src={currentSong.thumbnail} alt="" className="now-playing-img" onClick={() => setNowPlayingOpen(true)} />
+              <div className="now-playing-info">
+                <button className="now-playing-title" onClick={() => setNowPlayingOpen(true)}>{currentSong.title}</button>
+                <span className="now-playing-artist">{currentSong.artistName}</span>
+              </div>
+              {isCurrentLossless && <span className="lossless-badge">HiFi</span>}
+            </>
+          ) : <span className="muted">No song selected</span>}
+        </div>
+
+        <div className="player-center">
+          <div className="player-controls">
+            <button className={`control-btn ${isShuffleActive ? 'active' : ''}`} onClick={toggleShuffle} title={isShuffleActive ? 'Disable shuffle' : 'Enable shuffle'} aria-pressed={isShuffleActive}>
+              <Shuffle size={18} />
+            </button>
+            <button className="control-btn" onClick={playPrevious} disabled={!hasPrevious} title="Previous">
+              <SkipBack size={20} />
+            </button>
+            <button className="play-pause-btn" onClick={togglePlay} disabled={!currentSong}>
+              {isPlaying ? <Pause fill="black" size={17} /> : <Play fill="black" size={17} />}
+            </button>
+            <button className="control-btn" onClick={playNext} disabled={!hasNext} title="Next">
+              <SkipForward size={20} />
+            </button>
+            <button className={`control-btn ${repeatMode !== 'off' ? 'active' : ''}`} onClick={cycleRepeatMode} title={repeatMode === 'off' ? 'Enable repeat' : repeatMode === 'all' ? 'Enable repeat one' : 'Disable repeat'} aria-pressed={repeatMode !== 'off'}>
+              {repeatIcon}
+            </button>
+          </div>
+          <div className="progress-container">
+            <span className="time-text">{formatTime(progress)}</span>
+            <div className="progress-bar-container" onClick={handleProgressChange}>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }} />
+                <div className="progress-thumb" style={{ left: `${duration ? (progress / duration) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <span className="time-text">{formatTime(duration)}</span>
+          </div>
+        </div>
+
+        <div className="player-right">
+          <button className={`control-btn ${isLyricsOpen ? 'active' : ''}`} onClick={() => setLyricsOpen((value) => !value)} title="Lyrics" aria-pressed={isLyricsOpen}>
+            <Mic2 size={18} />
+          </button>
+          <button className={`control-btn ${!isNowPlayingOpen ? 'active' : ''}`} onClick={() => setNowPlayingOpen(false)} title="Queue" aria-pressed={!isNowPlayingOpen}>
+            <ListMusic size={18} />
+          </button>
+          <button className={`control-btn ${isOfflineMode ? 'active' : ''}`} onClick={toggleOfflineMode} title={isOfflineMode ? 'Disable offline mode' : 'Enable offline mode'} aria-pressed={isOfflineMode}>
+            <WifiOff size={18} />
+          </button>
+          <button className={`control-btn ${isAutoplayEnabled ? 'active' : ''}`} onClick={toggleAutoplay} title={isAutoplayEnabled ? 'Disable autoplay' : 'Enable autoplay'} aria-pressed={isAutoplayEnabled}>
+            <Radio size={18} />
+          </button>
+          <div className="popover-wrap">
+            <button className={`quality-button ${audioQuality === 'lossless' ? 'active' : ''}`} onClick={() => setQualityOpen((value) => !value)} title="Audio quality">HiFi</button>
+            {qualityOpen && (
+              <div className="small-popover">
+                <h4>Audio quality</h4>
+                <button className={audioQuality === 'standard' ? 'selected' : ''} onClick={() => setAudioQuality('standard')}>Standard</button>
+                <button className={audioQuality === 'lossless' ? 'selected' : ''} onClick={() => setAudioQuality('lossless')}>Lossless FLAC</button>
+                <p>HiFi appears only when the backend serves a real FLAC file.</p>
+              </div>
+            )}
+          </div>
+          <div className="popover-wrap">
+            <button className="control-btn" onClick={() => setDeviceOpen((value) => !value)} title="Connect to a device">
+              <Laptop size={18} />
+            </button>
+            {deviceOpen && (
+              <div className="small-popover device-popover">
+                <h4>Connect to a device</h4>
+                <div className="device-row active-device"><Laptop size={16} /><span>This browser</span><CheckCircle2 size={15} /></div>
+                <p>External Spotify Connect devices are not available in this local clone.</p>
+              </div>
+            )}
+          </div>
+          <button className="control-btn" onClick={() => setIsMuted((value) => !value)} title={isMuted ? 'Unmute' : 'Mute'} aria-pressed={isMuted}>
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+          <div className="volume-bar-container" onClick={handleVolumeChange}>
+            <div className="volume-bar">
+              <div className="volume-fill" style={{ width: `${isMuted ? 0 : volume}%` }} />
+              <div className="volume-thumb" style={{ left: `${isMuted ? 0 : volume}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {usesHtmlAudio && audioUrl && (
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onEnded={playNext}
+            onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+            onTimeUpdate={() => setProgress(audioRef.current?.currentTime || 0)}
           />
-        </div>
-      )}
-    </footer>
+        )}
+
+        {currentSong && !usesHtmlAudio && (
+          <div className="hidden-player">
+            <YouTube
+              videoId={currentSong.videoId}
+              opts={{ height: '1', width: '1', playerVars: { autoplay: 1, controls: 0 } }}
+              onReady={onReady}
+              onStateChange={onStateChange}
+            />
+          </div>
+        )}
+      </footer>
+    </>
   );
 }

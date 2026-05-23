@@ -1,17 +1,26 @@
-# Spotify Desktop Clone
+# Spotify Clone (Responsive Desktop & Mobile)
 
-A local Spotify-style desktop music app built with a FastAPI backend and a Vite + React frontend. The UI follows Spotify's desktop structure: left navigation and library, central Home/Search/Playlist pages, right Now Playing or Queue panel, and a persistent bottom player.
+A fully responsive, local Spotify-style music web application built with a FastAPI backend and a Vite + React frontend. This project faithfully recreates the Spotify experience across devices.
 
-## Features
+## 📱 Mobile Experience
+- **Bottom Navigation**: Spotify-style bottom tab bar for easy access to Home, Search, and Library on small screens.
+- **Mini-Player**: A persistent, compact audio bar above the navigation tabs on mobile.
+- **Full-Screen Now Playing**: A rich, swipeable full-screen overlay for mobile devices featuring a draggable seek bar, playback controls, and slide-up lyrics.
+- **Touch-Optimized UI**: Larger tap targets, horizontal scrolling strips for cards, and refined responsive grids.
 
-- Spotify-like desktop shell with Home, Search, Your Library, Liked Songs, Now Playing, Queue, and bottom playback controls.
+## 💻 Desktop Experience
+- **Classic Spotify Desktop Layout**: Left navigation and library sidebar, central Home/Search/Playlist views, and a dynamic right panel for Now Playing or Queue.
+- **Persistent Bottom Player**: Comprehensive desktop player bar with volume, quality, device, and playback controls.
+- **Hover Effects & Transitions**: Polished CSS animations, card lift effects, and desktop-specific interactions.
+
+## 🎵 Core Features
 - YouTube Music search, home charts, bulk playlist creation, autoplay recommendations, and queue management.
-- Standard YouTube playback through the embedded player, plus backend audio streaming for downloaded or lossless-mode playback.
-- Offline song caching in IndexedDB with local download state.
-- Liked songs, recently played songs, playlist storage, shuffle, repeat, autoplay, lyrics panel, and local device/audio-quality popovers.
-- Honest HiFi status: the frontend shows lossless only when the backend actually serves FLAC.
+- Standard YouTube playback via an embedded player, with seamless fallback to backend audio streaming for offline or lossless-mode playback.
+- Offline song caching in IndexedDB with local download state management.
+- Robust state management including Liked songs, recently played tracks, playlist storage, shuffle, repeat, autoplay, and dynamic lyrics.
+- **Honest HiFi Status**: The frontend accurately reflects lossless quality only when the backend serves a true FLAC file.
 
-## Project Structure
+## 📁 Project Structure
 
 ```text
 spotify/
@@ -26,27 +35,30 @@ spotify/
       context/
       utils/
     package.json
+    index.css
 ```
 
-## Requirements
+## ⚙️ Requirements
 
 - Python 3.10+
 - Node.js 20+
-- FFmpeg available on PATH for FLAC extraction
+- FFmpeg available on PATH (required for FLAC extraction)
 
-## Run Backend
+## 🚀 Getting Started
+
+### 1. Run the Backend
 
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate  # On Windows. On macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
 
-Backend runs at `http://localhost:8000`.
+The backend server will run at `http://localhost:8000`.
 
-## Run Frontend
+### 2. Run the Frontend
 
 ```bash
 cd frontend
@@ -54,19 +66,21 @@ npm install
 npm run dev
 ```
 
-Vite usually starts at `http://localhost:5173`. If that port is busy, use the URL printed by Vite.
+Vite starts the development server at `http://localhost:5173` (or the next available port). Check the console output for the exact URL. You can use your browser's Developer Tools (Device Mode) to test the mobile responsive views.
 
-## Checks
+## ✅ Checks & Linting
 
 ```bash
+# Backend checks
 cd backend
 python -m compileall .
 
-cd ..\frontend
+# Frontend checks
+cd ../frontend
 npm run lint
 npm run build
 ```
 
-## Notes
+## ℹ️ Notes
 
-This is a local clone-style project, not an official Spotify client. Spotify Connect, official Spotify catalog playback, and official account features are represented with local equivalents where possible.
+This is an educational, local clone-style project, not an official Spotify client. Features like Spotify Connect, official Spotify catalog playback, and official user account management are simulated with local, functional equivalents.

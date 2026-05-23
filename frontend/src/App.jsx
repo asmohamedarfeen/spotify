@@ -1,5 +1,7 @@
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Home from './components/Home';
+import MobileNav from './components/MobileNav';
+import MobileNowPlaying from './components/MobileNowPlaying';
 import NowPlaying from './components/NowPlaying';
 import Player from './components/Player';
 import Playlists from './components/Playlists';
@@ -7,6 +9,20 @@ import QueueSidebar from './components/QueueSidebar';
 import Search from './components/Search';
 import Sidebar from './components/Sidebar';
 import { PlayerProvider, usePlayer } from './context/PlayerContext';
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <div className="page-transition" key={location.pathname}>
+      <Routes location={location}>
+        <Route path="/" element={<Home />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/playlists" element={<Playlists />} />
+        <Route path="/liked" element={<Playlists mode="liked" />} />
+      </Routes>
+    </div>
+  );
+}
 
 function AppContent() {
   const { isNowPlayingOpen } = usePlayer();
@@ -16,16 +32,13 @@ function AppContent() {
       <div className="app-container">
         <Sidebar />
         <main className="main-view">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/playlists" element={<Playlists />} />
-            <Route path="/liked" element={<Playlists mode="liked" />} />
-          </Routes>
+          <AnimatedRoutes />
         </main>
         {isNowPlayingOpen ? <NowPlaying /> : <QueueSidebar />}
       </div>
       <Player />
+      <MobileNav />
+      <MobileNowPlaying />
     </Router>
   );
 }

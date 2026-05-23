@@ -11,15 +11,29 @@ function getGreeting() {
   return 'Good evening';
 }
 
-function TrackCard({ track, context }) {
+function SkeletonCard() {
+  return (
+    <div className="spotify-card skeleton-card">
+      <div className="card-img-container skeleton-shimmer" />
+      <div className="skeleton-text skeleton-shimmer" style={{ width: '80%', height: 14, marginTop: 12 }} />
+      <div className="skeleton-text skeleton-shimmer" style={{ width: '50%', height: 12, marginTop: 8 }} />
+    </div>
+  );
+}
+
+function TrackCard({ track, context, index }) {
   const { addToQueue, downloadedSongs, downloadSong, isOfflineMode, playSong } = usePlayer();
   const isDownloaded = Boolean(downloadedSongs[track.videoId]);
   const isPlayable = !isOfflineMode || isDownloaded;
 
   return (
-    <article className={`spotify-card ${!isPlayable ? 'disabled' : ''}`} onClick={() => isPlayable && playSong(track, { context })}>
+    <article
+      className={`spotify-card ${!isPlayable ? 'disabled' : ''}`}
+      onClick={() => isPlayable && playSong(track, { context })}
+      style={{ animationDelay: `${index * 0.05}s` }}
+    >
       <div className="card-img-container">
-        <img src={track.thumbnail} alt={track.title} className="card-img" />
+        <img src={track.thumbnail} alt={track.title} className="card-img" loading="lazy" />
         {isPlayable && (
           <button className="play-btn" onClick={(event) => { event.stopPropagation(); playSong(track, { context }); }}>
             <Play fill="black" size={22} />
@@ -90,7 +104,14 @@ export default function Home() {
       <section className="home-hero">
         <h1>{getGreeting()}</h1>
         {loading ? (
-          <p className="muted">Loading your music...</p>
+          <div className="quick-access-grid">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="quick-card skeleton-shimmer" style={{ opacity: 0.4 }}>
+                <div style={{width:64,height:64,background:'rgba(255,255,255,0.06)'}} />
+                <span>&nbsp;</span>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="quick-access-grid">
             {quickTracks.map((track) => (
@@ -110,7 +131,10 @@ export default function Home() {
           <span>Fresh picks from your current listening</span>
         </div>
         <div className="spotify-grid">
-          {madeForYou.map((track) => <TrackCard key={track.videoId} track={track} context={madeForYou} />)}
+          {loading
+            ? [1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)
+            : madeForYou.map((track, index) => <TrackCard key={track.videoId} track={track} context={madeForYou} index={index} />)
+          }
         </div>
       </section>
 
@@ -120,7 +144,10 @@ export default function Home() {
           <span>Popular tracks available to play now</span>
         </div>
         <div className="spotify-grid">
-          {trending.map((track) => <TrackCard key={track.videoId} track={track} context={trending} />)}
+          {loading
+            ? [1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)
+            : trending.map((track, index) => <TrackCard key={track.videoId} track={track} context={trending} index={index} />)
+          }
         </div>
       </section>
     </div>
