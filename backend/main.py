@@ -37,8 +37,18 @@ VALID_QUALITIES = {"standard", "lossless"}
 @app.get("/api/search")
 def search(q: str):
     try:
-        results = yt.search(q, filter="songs")
-        return {"status": "success", "data": results}
+        query = (q or "").strip()
+        if not query:
+            return {"status": "success", "data": []}
+
+        results = yt.search(query, filter="songs", limit=20, ignore_spelling=True) or []
+        if not results:
+            fresh_yt = YTMusic()
+            results = fresh_yt.search(query, filter="songs", limit=20, ignore_spelling=True) or []
+        if not results:
+            mixed_results = YTMusic().search(query, limit=25, ignore_spelling=True) or []
+            results = [item for item in mixed_results if item.get("videoId") and item.get("resultType") in {"song", "video"}]
+        return {"status": "success", "data": results[:20]}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
