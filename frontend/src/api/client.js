@@ -26,6 +26,13 @@ export const api = {
       body: JSON.stringify({ queries }),
     });
   },
+  extractSpotifyPlaylist(url) {
+    return request('/api/extract-spotify-playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  },
   recommendations(track) {
     const params = new URLSearchParams({
       videoId: track.videoId,

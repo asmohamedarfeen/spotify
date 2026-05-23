@@ -50,6 +50,7 @@ export function PlayerProvider({ children }) {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [isShuffleActive, setIsShuffleActive] = useState(false);
   const [repeatMode, setRepeatMode] = useState('off');
+  const [restartSignal, setRestartSignal] = useState(0);
   const audioRef = useRef(null);
 
   const [playlists, setPlaylists] = useState(() => readJson(STORAGE.playlists, []));
@@ -166,6 +167,20 @@ export function PlayerProvider({ children }) {
     setQueue((items) => [...items, normalized]);
   }, []);
 
+  const playFromQueue = useCallback((song, indexToRemove) => {
+    const normalized = normalizeTrack(song);
+    if (!normalized?.videoId) return;
+    setQueue((items) => items.filter((_, index) => index !== indexToRemove));
+    setCurrentSong((previous) => {
+      if (previous && previous.videoId !== normalized.videoId) {
+        setHistory((historyItems) => [...historyItems, previous]);
+      }
+      return normalized;
+    });
+    addRecent(normalized);
+    setIsPlaying(true);
+  }, [addRecent]);
+
   const removeFromQueue = useCallback((indexToRemove) => {
     setQueue((items) => items.filter((_, index) => index !== indexToRemove));
   }, []);
@@ -183,6 +198,7 @@ export function PlayerProvider({ children }) {
 
   const playNext = useCallback(() => {
     if (repeatMode === 'one' && currentSong) {
+      setRestartSignal((value) => value + 1);
       setIsPlaying(true);
       return;
     }
@@ -338,8 +354,10 @@ export function PlayerProvider({ children }) {
     recentlyPlayed,
     isShuffleActive,
     repeatMode,
+    restartSignal,
     setAudioQuality,
     playSong,
+    playFromQueue,
     togglePlay,
     addToQueue,
     removeFromQueue,
@@ -366,8 +384,8 @@ export function PlayerProvider({ children }) {
     addToQueue, audioQuality, clearQueue, createPlaylist, currentSong, cycleRepeatMode, deleteDownloadedSong,
     deletePlaylist, downloadedSongs, downloadingSongs, downloadSong, history, isAutoplayEnabled,
     isLyricsOpen, isNowPlayingOpen, isOfflineMode, isPlaying, isShuffleActive, isSidebarOpen,
-    likedSongs, lyrics, lyricsLoading, moveQueueItem, playNext, playPrevious, playSong, playlists,
-    queue, recommendations, recentlyPlayed, removeFromQueue, removeTrackFromPlaylist, repeatMode,
+    likedSongs, lyrics, lyricsLoading, moveQueueItem, playFromQueue, playNext, playPrevious, playSong, playlists,
+    queue, recommendations, recentlyPlayed, removeFromQueue, removeTrackFromPlaylist, repeatMode, restartSignal,
     setAudioQuality, toggleLikedSong, toggleOfflineMode, togglePlay, toggleShuffle,
   ]);
 

@@ -7,6 +7,7 @@ export default function QueueSidebar() {
     clearQueue,
     currentSong,
     isAutoplayEnabled,
+    playFromQueue,
     playSong,
     queue,
     recommendations,
@@ -46,7 +47,7 @@ export default function QueueSidebar() {
             <div key={`${track.videoId}-${index}`} className="queue-row">
               <GripVertical size={14} />
               <img src={track.thumbnail} alt="" />
-              <button className="queue-row-main" onClick={() => playSong(track)}>
+              <button className="queue-row-main" onClick={() => playFromQueue(track, index)}>
                 <strong>{track.title}</strong>
                 <span>{track.artistName}</span>
               </button>

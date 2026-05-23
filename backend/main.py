@@ -22,9 +22,14 @@ yt = YTMusic()
 
 from pydantic import BaseModel
 from typing import List
+import re
+from html import unescape
 
 class BulkSearchRequest(BaseModel):
     queries: List[str]
+
+class SpotifyPlaylistUrlRequest(BaseModel):
+    url: str
 
 VALID_QUALITIES = {"standard", "lossless"}
 
@@ -268,6 +273,72 @@ def downloaded_songs():
         return {"status": "success", "data": list(songs.values())}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def strip_html(value: str) -> str:
+    value = re.sub(r"<[^>]+>", "", value or "")
+    return unescape(value).replace("\xa0", " ").strip()
+
+def extract_spotify_playlist_id(url: str) -> str:
+    match = re.search(r"open\.spotify\.com/(?:embed/)?playlist/([A-Za-z0-9]+)", url or "")
+    if not match:
+        raise ValueError("Enter a valid public Spotify playlist URL")
+    return match.group(1)
+
+def parse_spotify_embed_playlist(html: str):
+    title_match = re.search(r'<meta property="og:title" content="([^"]+)"', html)
+    if not title_match:
+        title_match = re.search(r'alt="([^"]+) cover"', html)
+    playlist_name = strip_html(title_match.group(1)) if title_match else "Imported Spotify Playlist"
+    rows = re.findall(r'<li[^>]+data-testid="tracklist-row-\d+"[^>]*>(.*?)</li>', html, flags=re.S)
+    tracks = []
+    for row in rows:
+        title_match = re.search(r'<h3[^>]*>(.*?)</h3>', row, flags=re.S)
+        artist_match = re.search(r'<h4[^>]*>(.*?)</h4>', row, flags=re.S)
+        duration_match = re.search(r'data-testid="duration-cell"[^>]*>(.*?)</div>', row, flags=re.S)
+        title = strip_html(title_match.group(1)) if title_match else ""
+        artist = strip_html(artist_match.group(1)) if artist_match else ""
+        duration = strip_html(duration_match.group(1)) if duration_match else ""
+        if title and artist:
+            tracks.append({
+                "title": title,
+                "artist": artist,
+                "duration": duration,
+                "query": f"{title} - {artist}",
+            })
+    return playlist_name, tracks
+
+@app.post("/api/extract-spotify-playlist")
+def extract_spotify_playlist(req: SpotifyPlaylistUrlRequest):
+    try:
+        playlist_id = extract_spotify_playlist_id(req.url)
+        embed_url = f"https://open.spotify.com/embed/playlist/{playlist_id}"
+        response = requests.get(
+            embed_url,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=20,
+        )
+        response.raise_for_status()
+        response.encoding = "utf-8"
+        playlist_name, tracks = parse_spotify_embed_playlist(response.text)
+        if not tracks:
+            return JSONResponse(status_code=422, content={
+                "status": "error",
+                "message": "Could not read tracks from this public Spotify playlist. Try copying the playlist rows and pasting them instead.",
+            })
+        return {
+            "status": "success",
+            "data": {
+                "playlistId": playlist_id,
+                "playlistName": playlist_name,
+                "tracks": tracks,
+                "queries": [track["query"] for track in tracks],
+                "count": len(tracks),
+                "limited": len(tracks) >= 100,
+                "source": "spotify-public-embed",
+            },
+        }
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
 
 @app.get("/api/lyrics")
 def lyrics(title: str = Query(""), artist: str = Query("")):

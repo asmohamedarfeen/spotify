@@ -30,6 +30,7 @@ export default function Player() {
     playPrevious,
     queue,
     repeatMode,
+    restartSignal,
     setAudioQuality,
     setLyricsOpen,
     setNowPlayingOpen,
@@ -68,6 +69,18 @@ export default function Player() {
     audioRef.current.volume = isMuted ? 0 : volume / 100;
     audioRef.current.muted = isMuted;
   }, [audioRef, isMuted, volume]);
+
+  useEffect(() => {
+    runYouTube((target) => {
+      if (isMuted) {
+        target.mute?.();
+        target.setVolume?.(0);
+      } else {
+        target.unMute?.();
+        target.setVolume?.(volume);
+      }
+    });
+  }, [isMuted, runYouTube, volume]);
 
   useEffect(() => {
     let active = true;
@@ -134,6 +147,21 @@ export default function Player() {
     }
     return () => clearInterval(intervalId);
   }, [isPlaying, player, runYouTube, usesHtmlAudio]);
+
+  useEffect(() => {
+    if (!restartSignal) return;
+    if (usesHtmlAudio && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+      setProgress(0);
+      return;
+    }
+    runYouTube((target) => {
+      target.seekTo?.(0);
+      target.playVideo?.();
+    });
+    setProgress(0);
+  }, [audioRef, restartSignal, runYouTube, usesHtmlAudio]);
 
   const onReady = (event) => {
     setPlayer(event.target);
@@ -207,7 +235,7 @@ export default function Player() {
 
       <div className="player-center">
         <div className="player-controls">
-          <button className={`control-btn ${isShuffleActive ? 'active' : ''}`} onClick={toggleShuffle} title="Shuffle">
+          <button className={`control-btn ${isShuffleActive ? 'active' : ''}`} onClick={toggleShuffle} title={isShuffleActive ? 'Disable shuffle' : 'Enable shuffle'} aria-pressed={isShuffleActive}>
             <Shuffle size={18} />
           </button>
           <button className="control-btn" onClick={playPrevious} disabled={!hasPrevious} title="Previous">
@@ -219,7 +247,7 @@ export default function Player() {
           <button className="control-btn" onClick={playNext} disabled={!hasNext} title="Next">
             <SkipForward size={20} />
           </button>
-          <button className={`control-btn ${repeatMode !== 'off' ? 'active' : ''}`} onClick={cycleRepeatMode} title={`Repeat ${repeatMode}`}>
+          <button className={`control-btn ${repeatMode !== 'off' ? 'active' : ''}`} onClick={cycleRepeatMode} title={repeatMode === 'off' ? 'Enable repeat' : repeatMode === 'all' ? 'Enable repeat one' : 'Disable repeat'} aria-pressed={repeatMode !== 'off'}>
             {repeatIcon}
           </button>
         </div>
@@ -236,20 +264,20 @@ export default function Player() {
       </div>
 
       <div className="player-right">
-        <button className={`control-btn ${isLyricsOpen ? 'active' : ''}`} onClick={() => setLyricsOpen((value) => !value)} title="Lyrics">
+        <button className={`control-btn ${isLyricsOpen ? 'active' : ''}`} onClick={() => setLyricsOpen((value) => !value)} title="Lyrics" aria-pressed={isLyricsOpen}>
           <Mic2 size={18} />
         </button>
-        <button className={`control-btn ${!isNowPlayingOpen ? 'active' : ''}`} onClick={() => setNowPlayingOpen(false)} title="Queue">
+        <button className={`control-btn ${!isNowPlayingOpen ? 'active' : ''}`} onClick={() => setNowPlayingOpen(false)} title="Queue" aria-pressed={!isNowPlayingOpen}>
           <ListMusic size={18} />
         </button>
-        <button className={`control-btn ${isOfflineMode ? 'active' : ''}`} onClick={toggleOfflineMode} title="Offline mode">
+        <button className={`control-btn ${isOfflineMode ? 'active' : ''}`} onClick={toggleOfflineMode} title={isOfflineMode ? 'Disable offline mode' : 'Enable offline mode'} aria-pressed={isOfflineMode}>
           <WifiOff size={18} />
         </button>
-        <button className={`control-btn ${isAutoplayEnabled ? 'active' : ''}`} onClick={toggleAutoplay} title="Autoplay">
+        <button className={`control-btn ${isAutoplayEnabled ? 'active' : ''}`} onClick={toggleAutoplay} title={isAutoplayEnabled ? 'Disable autoplay' : 'Enable autoplay'} aria-pressed={isAutoplayEnabled}>
           <Radio size={18} />
         </button>
         <div className="popover-wrap">
-          <button className={`quality-button ${audioQuality === 'lossless' ? 'active' : ''}`} onClick={() => setQualityOpen((value) => !value)}>HiFi</button>
+          <button className={`quality-button ${audioQuality === 'lossless' ? 'active' : ''}`} onClick={() => setQualityOpen((value) => !value)} title="Audio quality">HiFi</button>
           {qualityOpen && (
             <div className="small-popover">
               <h4>Audio quality</h4>
@@ -271,7 +299,7 @@ export default function Player() {
             </div>
           )}
         </div>
-        <button className="control-btn" onClick={() => setIsMuted((value) => !value)} title="Mute">
+        <button className="control-btn" onClick={() => setIsMuted((value) => !value)} title={isMuted ? 'Unmute' : 'Mute'} aria-pressed={isMuted}>
           {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
         <div className="volume-bar-container" onClick={handleVolumeChange}>
