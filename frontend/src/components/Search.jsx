@@ -1,13 +1,16 @@
 import { CheckCircle, Download, Heart, Loader2, Play, Plus, Search as SearchIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { usePlayer } from '../context/PlayerContext';
+import { canSearch, normalizeSearchTerm } from '../utils/searchLogic';
 import { formatDuration, normalizeTracks } from '../utils/tracks';
 
 export default function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchedTerm, setSearchedTerm] = useState('');
+  const [searchError, setSearchError] = useState('');
   const [activeFilter, setActiveFilter] = useState('Songs');
   const {
     addToQueue,
@@ -20,16 +23,59 @@ export default function Search() {
     toggleLikedSong,
   } = usePlayer();
 
+  const runSearch = useCallback(async (rawTerm, options = {}) => {
+    const term = normalizeSearchTerm(rawTerm);
+    if (!canSearch(term)) {
+      setResults([]);
+      setSearchedTerm('');
+      setSearchError('');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setSearchError('');
+    try {
+      const data = await api.search(term, options);
+      setResults(normalizeTracks(data.data));
+      setSearchedTerm(term);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      setResults([]);
+      setSearchedTerm(term);
+      setSearchError(error.message || 'Search failed. Check that the backend is running.');
+    } finally {
+      if (!options.signal?.aborted) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const term = normalizeSearchTerm(query);
+    if (!canSearch(term)) return undefined;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      runSearch(term, { signal: controller.signal });
+    }, 350);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query, runSearch]);
+
   const handleSearch = async (event) => {
     event.preventDefault();
-    if (!query.trim()) return;
-    setLoading(true);
-    try {
-      const data = await api.search(query);
-      setResults(normalizeTracks(data.data));
-    } catch {
+    await runSearch(query);
+  };
+
+  const handleQueryChange = (event) => {
+    const nextQuery = event.target.value;
+    setQuery(nextQuery);
+    if (!canSearch(nextQuery)) {
       setResults([]);
-    } finally {
+      setSearchedTerm('');
+      setSearchError('');
       setLoading(false);
     }
   };
@@ -48,7 +94,7 @@ export default function Search() {
           <SearchIcon size={20} />
           <input
             className="search-input"
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={handleQueryChange}
             placeholder="What do you want to play?"
             value={query}
           />
@@ -78,7 +124,23 @@ export default function Search() {
         </div>
       )}
 
-      {!loading && topResult && (
+      {!loading && searchError && (
+        <div className="center-state search-status">
+          <SearchIcon size={42} />
+          <h2>Search is unavailable</h2>
+          <p>{searchError}</p>
+        </div>
+      )}
+
+      {!loading && !searchError && searchedTerm && displayResults.length === 0 && (
+        <div className="center-state search-status">
+          <SearchIcon size={42} />
+          <h2>No results found</h2>
+          <p>Try another song, artist, or album name.</p>
+        </div>
+      )}
+
+      {!loading && !searchError && topResult && (
         <div className="search-layout">
           <section>
             <h2 className="section-title">Top result</h2>

@@ -163,6 +163,12 @@ button {
   color: var(--green);
 }
 
+.smart-active,
+.control-btn.smart-active,
+.mnp-ctrl-btn.smart-active {
+  color: #7dd3fc;
+}
+
 .icon-only.danger:hover {
   color: var(--danger);
 }
@@ -235,6 +241,11 @@ button {
   color: #fff;
 }
 
+.downloaded-cover {
+  background: linear-gradient(135deg, #1db954, #0f766e);
+  color: #fff;
+}
+
 .library-item-info,
 .track-meta,
 .queue-row-main,
@@ -258,11 +269,18 @@ button {
 .library-item-subtitle,
 .track-meta span,
 .queue-row-main span,
+.mini-track-main span,
 .muted,
 .card-subtitle,
 .now-playing-artist {
   color: var(--muted);
   font-size: 12px;
+}
+
+.queue-row-main span {
+  align-items: center;
+  display: flex;
+  gap: 5px;
 }
 
 .library-empty {
@@ -943,6 +961,48 @@ button {
   padding: 16px;
 }
 
+.table-empty {
+  color: var(--muted);
+  padding: 26px 18px;
+}
+
+.premium-feature-strip {
+  padding-top: 10px;
+}
+
+.premium-feature-strip h2 {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.premium-feature-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.premium-feature-grid > div {
+  min-height: 96px;
+  padding: 16px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 6%);
+}
+
+.premium-feature-grid strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.premium-feature-grid span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .info-card h4,
 .queue-section h4 {
   display: flex;
@@ -1004,7 +1064,21 @@ button {
   flex-direction: column;
 }
 
+.mini-track-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 .mini-track strong,
+.mini-track-main strong,
 .queue-now strong {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1012,9 +1086,14 @@ button {
 }
 
 .mini-track span,
+.mini-track-main span,
 .queue-now span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.recommendation-track {
+  margin-bottom: 10px;
 }
 
 .mini-track img,
@@ -1116,6 +1195,14 @@ button {
 
 .player-center {
   min-width: 0;
+}
+
+.player-error {
+  min-height: 16px;
+  color: #ffb4a8;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .player-controls {
@@ -1493,6 +1580,10 @@ button {
   /* Hide desktop elements */
   .sidebar {
     display: none;
+  }
+
+  .premium-feature-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .side-panel {
@@ -2166,6 +2257,10 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .premium-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
   .quick-card {
     min-width: 160px;
   }
@@ -2178,4 +2273,3 @@ button {
     font-size: 18px;
   }
 }
-

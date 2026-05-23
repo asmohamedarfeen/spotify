@@ -1,4 +1,4 @@
-import { CheckCircle2, Laptop, ListMusic, Mic2, Pause, Play, Radio, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, WifiOff } from 'lucide-react';
+import { CheckCircle2, Laptop, ListMusic, Mic2, Pause, Play, Radio, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, Sparkles, Volume2, VolumeX, WifiOff } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import { api } from '../api/client';
@@ -25,7 +25,9 @@ export default function Player() {
     isNowPlayingOpen,
     isOfflineMode,
     isPlaying,
+    isSmartShuffleActive,
     isShuffleActive,
+    playbackError,
     playNext,
     playPrevious,
     queue,
@@ -35,6 +37,7 @@ export default function Player() {
     setLyricsOpen,
     setMobileNowPlayingOpen,
     setNowPlayingOpen,
+    setPlaybackError,
     toggleAutoplay,
     toggleOfflineMode,
     togglePlay,
@@ -89,6 +92,7 @@ export default function Player() {
       if (!currentSong) {
         setUsesHtmlAudio(false);
         setAudioUrl('');
+        setPlaybackError('');
         return;
       }
 
@@ -120,7 +124,7 @@ export default function Player() {
     return () => {
       active = false;
     };
-  }, [audioQuality, currentSong, downloadedSongs, isOfflineMode, runYouTube]);
+  }, [audioQuality, currentSong, downloadedSongs, isOfflineMode, runYouTube, setPlaybackError]);
 
   useEffect(() => {
     if (!usesHtmlAudio || !audioRef.current) return;
@@ -187,6 +191,11 @@ export default function Player() {
 
   const onStateChange = (event) => {
     if (event.data === 0) playNext();
+  };
+
+  const onPlaybackError = () => {
+    setPlaybackError('This track could not be played. Try skipping or switching audio quality.');
+    playNext();
   };
 
   const handleVolumeChange = (event) => {
@@ -262,8 +271,8 @@ export default function Player() {
 
         <div className="player-center">
           <div className="player-controls">
-            <button className={`control-btn ${isShuffleActive ? 'active' : ''}`} onClick={toggleShuffle} title={isShuffleActive ? 'Disable shuffle' : 'Enable shuffle'} aria-pressed={isShuffleActive}>
-              <Shuffle size={18} />
+            <button className={`control-btn ${isShuffleActive ? 'active' : ''} ${isSmartShuffleActive ? 'smart-active' : ''}`} onClick={toggleShuffle} title={isSmartShuffleActive ? 'Smart Shuffle on' : isShuffleActive ? 'Shuffle on' : 'Enable shuffle'} aria-pressed={isShuffleActive}>
+              {isSmartShuffleActive ? <Sparkles size={18} /> : <Shuffle size={18} />}
             </button>
             <button className="control-btn" onClick={playPrevious} disabled={!hasPrevious} title="Previous">
               <SkipBack size={20} />
@@ -278,6 +287,7 @@ export default function Player() {
               {repeatIcon}
             </button>
           </div>
+          {playbackError && <div className="player-error">{playbackError}</div>}
           <div className="progress-container">
             <span className="time-text">{formatTime(progress)}</span>
             <div className="progress-bar-container" onClick={handleProgressChange}>
@@ -342,6 +352,7 @@ export default function Player() {
             ref={audioRef}
             src={audioUrl}
             onEnded={playNext}
+            onError={onPlaybackError}
             onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
             onTimeUpdate={() => setProgress(audioRef.current?.currentTime || 0)}
           />
@@ -353,6 +364,7 @@ export default function Player() {
               videoId={currentSong.videoId}
               opts={{ height: '1', width: '1', playerVars: { autoplay: 1, controls: 0 } }}
               onReady={onReady}
+              onError={onPlaybackError}
               onStateChange={onStateChange}
             />
           </div>

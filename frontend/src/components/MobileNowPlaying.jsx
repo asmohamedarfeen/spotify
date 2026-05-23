@@ -13,6 +13,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -34,6 +35,7 @@ export default function MobileNowPlaying() {
     isLyricsOpen,
     isMobileNowPlayingOpen,
     isPlaying,
+    isSmartShuffleActive,
     isShuffleActive,
     likedSongs,
     lyrics,
@@ -216,11 +218,11 @@ export default function MobileNowPlaying() {
         {/* Playback Controls */}
         <div className="mnp-controls">
           <button
-            className={`mnp-ctrl-btn ${isShuffleActive ? 'active' : ''}`}
+            className={`mnp-ctrl-btn ${isShuffleActive ? 'active' : ''} ${isSmartShuffleActive ? 'smart-active' : ''}`}
             onClick={toggleShuffle}
-            aria-label="Shuffle"
+            aria-label={isSmartShuffleActive ? 'Smart Shuffle' : 'Shuffle'}
           >
-            <Shuffle size={22} />
+            {isSmartShuffleActive ? <Sparkles size={22} /> : <Shuffle size={22} />}
           </button>
           <button
             className="mnp-ctrl-btn"

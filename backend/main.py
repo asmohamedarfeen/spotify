@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from typing import List
 import re
 from html import unescape
+from recommendation_logic import normalize_recommendation
 
 class BulkSearchRequest(BaseModel):
     queries: List[str]
@@ -64,28 +65,23 @@ def home():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def jaccard_similarity(s1: str, s2: str) -> float:
-    words1 = set(s1.lower().split())
-    words2 = set(s2.lower().split())
-    if not words1 and not words2:
-        return 1.0
-    intersection = words1.intersection(words2)
-    union = words1.union(words2)
-    return len(intersection) / len(union)
+def collect_search_recommendations(title: str, artist: str):
+    queries = []
+    if artist:
+        queries.append(f"{artist} songs")
+        queries.append(f"{artist} similar artists")
+    if title and artist:
+        queries.append(f"{title} {artist}")
+    elif title:
+        queries.append(title)
 
-def get_vibe_score(s1: str, s2: str) -> float:
-    KEYWORDS = ["acoustic", "remix", "lofi", "live", "instrumental", "slowed", "reverb", "cover", "speed up", "mix", "rap", "pop", "rock", "jazz", "lo-fi"]
-    score = 0.0
-    s1_lower = s1.lower()
-    s2_lower = s2.lower()
-    for kw in KEYWORDS:
-        in_s1 = kw in s1_lower
-        in_s2 = kw in s2_lower
-        if in_s1 and in_s2:
-            score += 0.2
-        elif in_s1 != in_s2:
-            score -= 0.05
-    return score
+    collected = []
+    for query in queries[:3]:
+        try:
+            collected.extend(yt.search(query, filter="songs", limit=10) or [])
+        except Exception:
+            continue
+    return collected
 
 def normalize_quality(quality: str) -> str:
     quality = (quality or "standard").lower().strip()
@@ -129,62 +125,29 @@ def download_with_fallback(video_id: str, quality: str):
 @app.get("/api/recommendations")
 def recommendations(videoId: str, title: str = "", artist: str = ""):
     try:
-        watch_playlist = yt.get_watch_playlist(videoId, limit=20)
-        tracks = watch_playlist.get("tracks", [])
-        
+        candidates = []
+        try:
+            watch_playlist = yt.get_watch_playlist(videoId, limit=30)
+            for index, track in enumerate(watch_playlist.get("tracks", [])):
+                candidates.append((track, "watch-playlist", index))
+        except Exception:
+            pass
+
+        fallback_start = len(candidates)
+        for index, track in enumerate(collect_search_recommendations(title, artist)):
+            candidates.append((track, "search-fallback", fallback_start + index))
+
         results = []
-        for i, track in enumerate(tracks):
-            cand_video_id = track.get("videoId")
-            # Skip the currently playing song itself
-            if cand_video_id == videoId:
+        seen = {videoId}
+        for track, source, index in candidates:
+            normalized = normalize_recommendation(track, source, index, title, artist)
+            if not normalized or normalized["videoId"] in seen:
                 continue
-                
-            cand_title = track.get("title", "Unknown Title")
-            
-            cand_artist = "Unknown Artist"
-            if track.get("artists"):
-                cand_artist = track["artists"][0].get("name", "Unknown Artist")
-            elif track.get("artists_names"):
-                cand_artist = track["artists_names"]
-                
-            cand_thumbnail = ""
-            thumbnails = track.get("thumbnail") or track.get("thumbnails")
-            if thumbnails:
-                if isinstance(thumbnails, list) and len(thumbnails) > 0:
-                    cand_thumbnail = thumbnails[-1].get("url", "")
-                elif isinstance(thumbnails, dict):
-                    cand_thumbnail = thumbnails.get("url", "")
-                    
-            # Calculate leaf similarity (Text overlap + vibe overlap + artist matchup + decay)
-            decay = max(0.0, 1.0 - (i * 0.015))
-            text_sim = jaccard_similarity(title, cand_title)
-            
-            artist_match = 0.0
-            if artist and cand_artist:
-                if artist.lower().strip() == cand_artist.lower().strip():
-                    artist_match = 1.0
-                elif artist.lower() in cand_artist.lower() or cand_artist.lower() in artist.lower():
-                    artist_match = 0.5
-                    
-            vibe_sim = get_vibe_score(title, cand_title)
-            
-            # Combine scores
-            raw_score = (0.3 * decay) + (0.3 * text_sim) + (0.2 * artist_match) + (0.2 * (1.0 + vibe_sim))
-            # Map raw score to a nice percentage range [60%, 98%]
-            match_percentage = int(min(98.0, max(60.0, raw_score * 100)))
-            
-            results.append({
-                "videoId": cand_video_id,
-                "title": cand_title,
-                "artist": cand_artist,
-                "thumbnail": cand_thumbnail,
-                "album": track.get("album", {}).get("name", "Single") if track.get("album") else "Single",
-                "matchPercentage": match_percentage
-            })
-            
-        # Sort by match percentage in descending order
+            seen.add(normalized["videoId"])
+            results.append(normalized)
+
         results.sort(key=lambda x: x["matchPercentage"], reverse=True)
-        return {"status": "success", "data": results[:15]}
+        return {"status": "success", "data": results[:18]}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

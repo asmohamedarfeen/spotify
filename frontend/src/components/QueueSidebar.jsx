@@ -1,4 +1,4 @@
-import { GripVertical, Plus, Radio, Trash2, X } from 'lucide-react';
+import { GripVertical, Plus, Radio, Sparkles, Trash2, X } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 
 export default function QueueSidebar() {
@@ -49,7 +49,7 @@ export default function QueueSidebar() {
               <img src={track.thumbnail} alt="" />
               <button className="queue-row-main" onClick={() => playFromQueue(track, index)}>
                 <strong>{track.title}</strong>
-                <span>{track.artistName}</span>
+                <span>{track.isSmartRecommendation ? 'Smart Shuffle recommendation' : track.artistName}</span>
               </button>
               <button className="icon-only danger" onClick={() => removeFromQueue(index)} title="Remove">
                 <Trash2 size={15} />
@@ -69,7 +69,7 @@ export default function QueueSidebar() {
                 <img src={track.thumbnail} alt="" />
                 <button className="queue-row-main" onClick={() => playSong(track)}>
                   <strong>{track.title}</strong>
-                  <span>{track.artistName}</span>
+                  <span><Sparkles size={12} /> {track.matchPercentage ? `${track.matchPercentage}% match` : track.artistName}</span>
                 </button>
                 <button className="icon-only" onClick={() => addToQueue(track)} title="Add to queue">
                   <Plus size={15} />

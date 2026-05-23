@@ -1,9 +1,10 @@
-import { CheckCircle, Download, Heart, ListMusic, Mic2, MoreHorizontal, X } from 'lucide-react';
+import { CheckCircle, Download, Heart, ListMusic, Mic2, MoreHorizontal, Plus, Sparkles, X } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 
 export default function NowPlaying() {
   const {
     currentSong,
+    addToQueue,
     downloadedSongs,
     downloadingSongs,
     downloadSong,
@@ -12,7 +13,9 @@ export default function NowPlaying() {
     lyrics,
     lyricsLoading,
     queue,
+    recommendations,
     setNowPlayingOpen,
+    playSong,
     toggleLikedSong,
     toggleLyrics,
   } = usePlayer();
@@ -103,6 +106,24 @@ export default function NowPlaying() {
               </div>
             </div>
           ) : <p className="muted">Recommendations will play after this song.</p>}
+        </section>
+
+        <section className="info-card">
+          <h4><Sparkles size={15} /> Recommended songs</h4>
+          {recommendations.length > 0 ? recommendations.slice(0, 5).map((track) => (
+            <div key={track.videoId} className="mini-track recommendation-track">
+              <img src={track.thumbnail} alt="" />
+              <button onClick={() => playSong(track)} className="mini-track-main">
+                <strong>{track.title}</strong>
+                <span>{track.matchPercentage ? `${track.matchPercentage}% match` : track.artistName}</span>
+              </button>
+              <button className="icon-only" onClick={() => addToQueue(track)} title="Add to queue">
+                <Plus size={15} />
+              </button>
+            </div>
+          )) : (
+            <p className="muted">Recommendations appear after a track starts playing.</p>
+          )}
         </section>
       </div>
     </aside>

@@ -13,6 +13,10 @@ backend/__pycache__/
 dist/
 frontend/dist/
 
+# Local dev server logs
+backend-server*.log
+frontend-server*.log
+
 # Large local media downloads
 downloads/
 backend/downloads/

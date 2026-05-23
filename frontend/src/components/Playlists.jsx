@@ -1,16 +1,19 @@
 import { ArrowDownCircle, CheckCircle, Clock3, Download, FileText, Heart, Loader2, Play, Plus, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { usePlayer } from '../context/PlayerContext';
 import { parsePlaylistImport } from '../utils/playlistImport';
+import { findPlaylistById } from '../utils/playerLogic';
 import { formatDuration, normalizeTracks } from '../utils/tracks';
 
-function TrackTable({ title, tracks, onRemove }) {
+function TrackTable({ title, tracks, onRemove, canDeleteDownload = false, emptyMessage = 'No songs here yet.' }) {
   const {
     addToQueue,
     downloadedSongs,
     downloadingSongs,
     downloadSong,
+    deleteDownloadedSong,
     isOfflineMode,
     likedSongs,
     playSong,
@@ -63,7 +66,11 @@ function TrackTable({ title, tracks, onRemove }) {
               <button className="icon-only" onClick={() => addToQueue(track)} title="Add to queue">
                 <Plus size={16} />
               </button>
-              {onRemove ? (
+              {canDeleteDownload ? (
+                <button className="icon-only danger" onClick={() => deleteDownloadedSong(track.videoId)} title="Remove download">
+                  <Trash2 size={16} />
+                </button>
+              ) : onRemove ? (
                 <button className="icon-only danger" onClick={() => onRemove(track.videoId)} title="Remove">
                   <Trash2 size={16} />
                 </button>
@@ -73,14 +80,23 @@ function TrackTable({ title, tracks, onRemove }) {
             </div>
           );
         })}
+        {tracks.length === 0 && <p className="table-empty">{emptyMessage}</p>}
       </div>
     </section>
   );
 }
 
 export default function Playlists({ mode }) {
-  const { createPlaylist, deletePlaylist, likedSongs, playlists, removeTrackFromPlaylist } = usePlayer();
-  const [activePlaylistId, setActivePlaylistId] = useState(null);
+  const {
+    createPlaylist,
+    deletePlaylist,
+    downloadedSongs,
+    likedSongs,
+    playlists,
+    removeTrackFromPlaylist,
+  } = usePlayer();
+  const { playlistId } = useParams();
+  const navigate = useNavigate();
   const [playlistName, setPlaylistName] = useState('');
   const [songListInput, setSongListInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +107,8 @@ export default function Playlists({ mode }) {
   const [librarySearch, setLibrarySearch] = useState('');
 
   const likedTracks = useMemo(() => Object.values(likedSongs), [likedSongs]);
-  const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId);
+  const downloadedTracks = useMemo(() => Object.values(downloadedSongs), [downloadedSongs]);
+  const activePlaylist = findPlaylistById(playlists, playlistId);
   const visiblePlaylists = playlists.filter((playlist) => playlist.name.toLowerCase().includes(librarySearch.toLowerCase()));
   const importPreview = useMemo(() => parsePlaylistImport(importInput), [importInput]);
 
@@ -103,7 +120,7 @@ export default function Playlists({ mode }) {
       const queries = songListInput.split('\n').map((query) => query.trim()).filter(Boolean);
       const data = await api.bulkSearch(queries);
       const playlist = createPlaylist(playlistName, normalizeTracks(data.data));
-      setActivePlaylistId(playlist.id);
+      navigate(`/playlists/${playlist.id}`);
       setPlaylistName('');
       setSongListInput('');
     } finally {
@@ -143,7 +160,7 @@ export default function Playlists({ mode }) {
         return;
       }
       const playlist = createPlaylist(importedName, tracks);
-      setActivePlaylistId(playlist.id);
+      navigate(`/playlists/${playlist.id}`);
       setImportName('');
       setImportInput('');
       setImportMessage(`${sourceMessage}Imported ${tracks.length} of ${queries.length} tracks.`);
@@ -165,7 +182,23 @@ export default function Playlists({ mode }) {
             <p>Local Library - {likedTracks.length} songs</p>
           </div>
         </header>
-        <TrackTable title="Liked Songs" tracks={likedTracks} />
+        <TrackTable title="Liked Songs" tracks={likedTracks} emptyMessage="Songs you save will appear here." />
+      </div>
+    );
+  }
+
+  if (mode === 'downloaded') {
+    return (
+      <div className="view-page">
+        <header className="playlist-header downloaded-header">
+          <div className="playlist-cover downloaded-cover"><Download size={72} /></div>
+          <div>
+            <span>Offline playlist</span>
+            <h1>Downloaded</h1>
+            <p>Local Library - {downloadedTracks.length} songs cached on this device</p>
+          </div>
+        </header>
+        <TrackTable title="Downloaded" tracks={downloadedTracks} canDeleteDownload emptyMessage="Download songs to make them available offline." />
       </div>
     );
   }
@@ -176,7 +209,7 @@ export default function Playlists({ mode }) {
         <header className="playlist-header">
           <div className="playlist-cover"><span>{activePlaylist.name.slice(0, 1).toUpperCase()}</span></div>
           <div>
-            <button className="text-button" onClick={() => setActivePlaylistId(null)}>Back to library</button>
+            <button className="text-button" onClick={() => navigate('/playlists')}>Back to library</button>
             <span>Playlist</span>
             <h1>{activePlaylist.name}</h1>
             <p>Local Library - {activePlaylist.songs?.length || 0} songs</p>
@@ -186,7 +219,20 @@ export default function Playlists({ mode }) {
           title={activePlaylist.name}
           tracks={activePlaylist.songs || []}
           onRemove={(videoId) => removeTrackFromPlaylist(activePlaylist.id, videoId)}
+          emptyMessage="This playlist is empty."
         />
+      </div>
+    );
+  }
+
+  if (playlistId && !activePlaylist) {
+    return (
+      <div className="view-page">
+        <div className="center-state">
+          <h2>Playlist not found</h2>
+          <p className="muted">This local playlist may have been deleted.</p>
+          <button className="primary-pill" onClick={() => navigate('/playlists')}>Back to Your Library</button>
+        </div>
       </div>
     );
   }
@@ -259,7 +305,7 @@ export default function Playlists({ mode }) {
           </div>
           <div className="playlist-list">
             {visiblePlaylists.map((playlist) => (
-              <button key={playlist.id} className="playlist-list-row" onClick={() => setActivePlaylistId(playlist.id)}>
+              <button key={playlist.id} className="playlist-list-row" onClick={() => navigate(`/playlists/${playlist.id}`)}>
                 <div className="playlist-list-cover">{playlist.name.slice(0, 1).toUpperCase()}</div>
                 <div>
                   <strong>{playlist.name}</strong>

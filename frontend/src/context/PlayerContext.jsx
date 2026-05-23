@@ -2,6 +2,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { deleteOfflineSong, getAllOfflineSongs, saveOfflineSong } from '../utils/offlineDb';
+import {
+  SHUFFLE_MODES,
+  buildContextQueue,
+  mergeSmartRecommendations,
+  nextShuffleMode,
+} from '../utils/playerLogic';
 import { normalizeTrack, normalizeTracks } from '../utils/tracks';
 
 const PlayerContext = createContext(null);
@@ -27,15 +33,6 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function shuffleTracks(tracks) {
-  const copy = [...tracks];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
 export function PlayerProvider({ children }) {
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -49,8 +46,10 @@ export function PlayerProvider({ children }) {
   const [isMobileNowPlayingOpen, setIsMobileNowPlayingOpen] = useState(false);
   const [lyrics, setLyrics] = useState(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
-  const [isShuffleActive, setIsShuffleActive] = useState(false);
+  const [shuffleMode, setShuffleMode] = useState(SHUFFLE_MODES.off);
   const [repeatMode, setRepeatMode] = useState('off');
+  const [currentContext, setCurrentContext] = useState([]);
+  const [playbackError, setPlaybackError] = useState('');
   const [restartSignal, setRestartSignal] = useState(0);
   const audioRef = useRef(null);
 
@@ -61,6 +60,7 @@ export function PlayerProvider({ children }) {
   const [downloadedSongs, setDownloadedSongs] = useState({});
   const [downloadingSongs, setDownloadingSongs] = useState({});
   const [audioQuality, setAudioQualityState] = useState(() => localStorage.getItem(STORAGE.quality) || 'standard');
+  const isShuffleActive = shuffleMode !== SHUFFLE_MODES.off;
 
   const persistPlaylists = useCallback((nextPlaylists) => {
     setPlaylists(nextPlaylists);
@@ -143,6 +143,7 @@ export function PlayerProvider({ children }) {
   const playSong = useCallback((song, options = {}) => {
     const normalized = normalizeTrack(song);
     if (!normalized?.videoId) return;
+    setPlaybackError('');
     setCurrentSong((previous) => {
       if (previous && previous.videoId !== normalized.videoId) {
         setHistory((items) => [...items, previous]);
@@ -150,12 +151,17 @@ export function PlayerProvider({ children }) {
       return normalized;
     });
     if (options.context) {
-      const contextTracks = normalizeTracks(options.context).filter((track) => track.videoId !== normalized.videoId);
-      setQueue(isShuffleActive ? shuffleTracks(contextTracks) : contextTracks);
+      const contextTracks = normalizeTracks(options.context);
+      setCurrentContext(contextTracks);
+      setQueue(buildContextQueue({
+        tracks: contextTracks,
+        currentVideoId: normalized.videoId,
+        mode: shuffleMode,
+      }));
     }
     addRecent(normalized);
     setIsPlaying(true);
-  }, [addRecent, isShuffleActive]);
+  }, [addRecent, shuffleMode]);
 
   const togglePlay = useCallback(() => {
     if (!currentSong) return;
@@ -180,6 +186,7 @@ export function PlayerProvider({ children }) {
     });
     addRecent(normalized);
     setIsPlaying(true);
+    setPlaybackError('');
   }, [addRecent]);
 
   const removeFromQueue = useCallback((indexToRemove) => {
@@ -203,13 +210,17 @@ export function PlayerProvider({ children }) {
       setIsPlaying(true);
       return;
     }
-    if (queue.length > 0) {
-      const [nextSong, ...rest] = queue;
+    const playableQueue = shuffleMode === SHUFFLE_MODES.smart
+      ? mergeSmartRecommendations(queue, recommendations, currentSong?.videoId)
+      : queue;
+    if (playableQueue.length > 0) {
+      const [nextSong, ...rest] = playableQueue;
       setQueue(rest);
       if (currentSong) setHistory((items) => [...items, currentSong]);
       setCurrentSong(nextSong);
       addRecent(nextSong);
       setIsPlaying(true);
+      setPlaybackError('');
       return;
     }
     if (isAutoplayEnabled && recommendations.length > 0) {
@@ -218,6 +229,7 @@ export function PlayerProvider({ children }) {
       setCurrentSong(nextSong);
       addRecent(nextSong);
       setIsPlaying(true);
+      setPlaybackError('');
       return;
     }
     if (repeatMode === 'all' && history.length > 0) {
@@ -228,7 +240,7 @@ export function PlayerProvider({ children }) {
       return;
     }
     setIsPlaying(false);
-  }, [addRecent, currentSong, history, isAutoplayEnabled, queue, recommendations, repeatMode]);
+  }, [addRecent, currentSong, history, isAutoplayEnabled, queue, recommendations, repeatMode, shuffleMode]);
 
   const playPrevious = useCallback(() => {
     if (history.length === 0) return;
@@ -237,6 +249,7 @@ export function PlayerProvider({ children }) {
     if (currentSong) setQueue((items) => [currentSong, ...items]);
     setCurrentSong(prevSong);
     setIsPlaying(true);
+    setPlaybackError('');
   }, [currentSong, history]);
 
   const cycleRepeatMode = useCallback(() => {
@@ -244,11 +257,24 @@ export function PlayerProvider({ children }) {
   }, []);
 
   const toggleShuffle = useCallback(() => {
-    setIsShuffleActive((enabled) => {
-      if (!enabled) setQueue((items) => shuffleTracks(items));
-      return !enabled;
+    setShuffleMode((mode) => {
+      const nextMode = nextShuffleMode(mode);
+      if (nextMode !== SHUFFLE_MODES.off) {
+        setQueue((items) => buildContextQueue({
+          tracks: items.length > 0 ? items : currentContext,
+          currentVideoId: currentSong?.videoId,
+          mode: nextMode,
+        }));
+      } else if (currentContext.length > 0) {
+        setQueue(buildContextQueue({
+          tracks: currentContext,
+          currentVideoId: currentSong?.videoId,
+          mode: SHUFFLE_MODES.off,
+        }));
+      }
+      return nextMode;
     });
-  }, []);
+  }, [currentContext, currentSong]);
 
   const toggleOfflineMode = useCallback(() => {
     setIsOfflineMode((value) => {
@@ -355,8 +381,11 @@ export function PlayerProvider({ children }) {
     likedSongs,
     recentlyPlayed,
     isShuffleActive,
+    isSmartShuffleActive: shuffleMode === SHUFFLE_MODES.smart,
+    shuffleMode,
     repeatMode,
     restartSignal,
+    playbackError,
     setAudioQuality,
     playSong,
     playFromQueue,
@@ -382,14 +411,16 @@ export function PlayerProvider({ children }) {
     downloadSong,
     deleteDownloadedSong,
     toggleShuffle,
+    setPlaybackError,
     cycleRepeatMode,
   }), [
     addToQueue, audioQuality, clearQueue, createPlaylist, currentSong, cycleRepeatMode, deleteDownloadedSong,
     deletePlaylist, downloadedSongs, downloadingSongs, downloadSong, history, isAutoplayEnabled,
     isLyricsOpen, isMobileNowPlayingOpen, isNowPlayingOpen, isOfflineMode, isPlaying, isShuffleActive, isSidebarOpen,
     likedSongs, lyrics, lyricsLoading, moveQueueItem, playFromQueue, playNext, playPrevious, playSong, playlists,
-    queue, recommendations, recentlyPlayed, removeFromQueue, removeTrackFromPlaylist, repeatMode, restartSignal,
+    playbackError, queue, recommendations, recentlyPlayed, removeFromQueue, removeTrackFromPlaylist, repeatMode, restartSignal,
     setAudioQuality, toggleLikedSong, toggleOfflineMode, togglePlay, toggleShuffle,
+    shuffleMode,
   ]);
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;

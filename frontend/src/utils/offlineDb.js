@@ -35,7 +35,7 @@ export async function saveOfflineSong(videoId, blob, songMetadata) {
         videoId,
         blob,
         title: songMetadata.title,
-        artist: songMetadata.artist || 'Unknown Artist',
+        artist: songMetadata.artistName || songMetadata.artist || 'Unknown Artist',
         thumbnail: songMetadata.thumbnail || '',
         addedAt: Date.now(),
         quality: songMetadata.quality || 'standard'

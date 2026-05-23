@@ -34,6 +34,7 @@ export default function Sidebar() {
         <div className="library-filter-row">
           <NavLink to="/playlists" className="library-chip">Playlists</NavLink>
           <NavLink to="/liked" className="library-chip">Songs</NavLink>
+          <NavLink to="/downloaded" className="library-chip">Downloads</NavLink>
         </div>
 
         <div className="library-scroll">
@@ -47,7 +48,7 @@ export default function Sidebar() {
             </div>
           </NavLink>
 
-          <div className="library-item">
+          <NavLink to="/downloaded" className="library-item">
             <div className="library-item-art">
               <Download size={18} />
             </div>
@@ -55,10 +56,10 @@ export default function Sidebar() {
               <span className="library-item-name">Downloaded</span>
               <span className="library-item-subtitle">{downloadedCount} songs</span>
             </div>
-          </div>
+          </NavLink>
 
           {playlists.length > 0 ? playlists.map((playlist) => (
-            <NavLink key={playlist.id} to="/playlists" className="library-item">
+            <NavLink key={playlist.id} to={`/playlists/${playlist.id}`} className="library-item">
               <div className="library-item-art">
                 <ListMusic size={18} />
               </div>

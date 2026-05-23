@@ -1,4 +1,4 @@
-import { CheckCircle, Download, Play, Plus } from 'lucide-react';
+import { CheckCircle, Download, Play, Plus, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { usePlayer } from '../context/PlayerContext';
@@ -90,6 +90,12 @@ export default function Home() {
 
   const madeForYou = tracks.slice(0, 8);
   const trending = tracks.slice(8, 20);
+  const djMix = useMemo(() => {
+    const downloaded = Object.values(downloadedSongs);
+    return [...recentlyPlayed, ...tracks.slice(0, 8), ...downloaded].filter((track, index, all) => (
+      all.findIndex((item) => item.videoId === track.videoId) === index
+    )).slice(0, 10);
+  }, [downloadedSongs, recentlyPlayed, tracks]);
 
   return (
     <div className="view-page">
@@ -123,6 +129,32 @@ export default function Home() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="content-section premium-feature-strip">
+        <div className="section-heading">
+          <h2><Sparkles size={22} /> Premium-style controls</h2>
+          <span>Offline listening, HiFi, Smart Shuffle, queue control, and DJ-style discovery</span>
+        </div>
+        <div className="premium-feature-grid">
+          <div><strong>Any order</strong><span>Play, skip, repeat, and queue tracks freely.</span></div>
+          <div><strong>Offline</strong><span>Download tracks and switch to offline mode.</span></div>
+          <div><strong>HiFi</strong><span>Use lossless FLAC when the backend can serve it.</span></div>
+          <div><strong>Smart Shuffle</strong><span>Cycle shuffle twice to mix in recommendations.</span></div>
+        </div>
+      </section>
+
+      <section className="content-section">
+        <div className="section-heading">
+          <h2>Local DJ mix</h2>
+          <span>Built from recent listening, downloads, and current charts</span>
+        </div>
+        <div className="spotify-grid">
+          {loading
+            ? [1,2,3,4,5].map(i => <SkeletonCard key={i} />)
+            : djMix.map((track, index) => <TrackCard key={track.videoId} track={track} context={djMix} index={index} />)
+          }
+        </div>
       </section>
 
       <section className="content-section">

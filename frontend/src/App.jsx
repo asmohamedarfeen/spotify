@@ -18,7 +18,9 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
         <Route path="/playlists" element={<Playlists />} />
+        <Route path="/playlists/:playlistId" element={<Playlists />} />
         <Route path="/liked" element={<Playlists mode="liked" />} />
+        <Route path="/downloaded" element={<Playlists mode="downloaded" />} />
       </Routes>
     </div>
   );

@@ -13,8 +13,8 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  search(query) {
-    return request(`/api/search?q=${encodeURIComponent(query)}`);
+  search(query, options = {}) {
+    return request(`/api/search?q=${encodeURIComponent(query)}`, options);
   },
   home() {
     return request('/api/home');
