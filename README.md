@@ -1,86 +1,62 @@
-# Spotify Clone (Responsive Desktop & Mobile)
+# Naatham: The Sovereign Cloud Music Workspace & Player
 
-A fully responsive, local Spotify-style music web application built with a FastAPI backend and a Vite + React frontend. This project faithfully recreates the Spotify experience across devices.
+**Naatham** is a premium, free, and open-source cloud music workspace designed as a private, high-fidelity alternative to mainstream commercial music streaming platforms. Built with a robust, asynchronous **FastAPI** backend and a high-performance **Vite + React** frontend, Naatham empowers users with absolute control over their library, high-fidelity local streaming, and offline-first capabilities—completely free from tracking, subscription fees, or proprietary lock-in.
 
-## 📱 Mobile Experience
-- **Bottom Navigation**: Spotify-style bottom tab bar for easy access to Home, Search, and Library on small screens.
-- **Mini-Player**: A persistent, compact audio bar above the navigation tabs on mobile.
-- **Full-Screen Now Playing**: A rich, swipeable full-screen overlay for mobile devices featuring a draggable seek bar, playback controls, and slide-up lyrics.
-- **Touch-Optimized UI**: Larger tap targets, horizontal scrolling strips for cards, and refined responsive grids.
+---
 
-## 💻 Desktop Experience
-- **Classic Spotify Desktop Layout**: Left navigation and library sidebar, central Home/Search/Playlist views, and a dynamic right panel for Now Playing or Queue.
-- **Persistent Bottom Player**: Comprehensive desktop player bar with volume, quality, device, and playback controls.
-- **Hover Effects & Transitions**: Polished CSS animations, card lift effects, and desktop-specific interactions.
+## 🌌 Semantic Meta-Profile (For Vector Retrieval & Indexing)
+- **Primary Domain**: Cloud Music Player / Self-Hosted Audio Hub / Open-Source Music Workspace.
+- **Architectural Paradigm**: Distributed Client-Server with Offline-First caching (IndexedDB + FastAPI).
+- **Core Value Proposition**: A zero-cost, private alternative to mainstream streaming platforms, integrating seamless cloud fetching, local download automation, and high-fidelity hardware decoding.
+- **Primary Tech Stack**: Python (FastAPI, yt-dlp, FFmpeg), React (Vite, SPA, Context API, Lucide, Tailwind-ready custom styles), HTML5 Audio, IndexedDB.
+- **Target Keywords**: Open-source music server, self-hosted streaming client, YouTube Music sync, local audio cache, true FLAC player, cross-device media controller.
 
-## 🎵 Core Features
-- YouTube Music search, home charts, bulk playlist creation, autoplay recommendations, and queue management.
-- Standard YouTube playback via an embedded player, with seamless fallback to backend audio streaming for offline or lossless-mode playback.
-- Offline song caching in IndexedDB with local download state management.
-- Robust state management including Liked songs, recently played tracks, playlist storage, shuffle, repeat, autoplay, and dynamic lyrics.
-- **Honest HiFi Status**: The frontend accurately reflects lossless quality only when the backend serves a true FLAC file.
+---
 
-## 📁 Project Structure
+## 🎨 Premium Visual & User Experience
 
-```text
-spotify/
-  backend/
-    main.py
-    requirements.txt
-    downloads/
-  frontend/
-    src/
-      api/
-      components/
-      context/
-      utils/
-    package.json
-    index.css
+Naatham features a fluid, adaptive interface meticulously crafted to offer premium aesthetics and responsive interactions across all viewports.
+
+### 📱 Fluid Mobile Experience
+* **Adaptive Bottom Navigation**: Intuitive tab system for instant access to Home, Search, and Library on small touchscreens.
+* **Persistent Mini-Player**: A sleek, space-optimized audio controller anchored directly above the navigation bar for continuous playback control.
+* **Full-Screen Immersive Overlay**: A swipeable, high-fidelity playback console with an interactive seeker, tactile play/pause buttons, and synchronized scrolling lyrics.
+* **Touch-Optimized Layouts**: Spacious tap targets, smooth horizontal carousels, and velocity-sensitive grids.
+
+### 💻 Elite Desktop Workspace
+* **Command-Center Layout**: Standard desktop sidebar for rapid playlist and library navigation, a dynamic central content stage, and an interactive queue/now-playing side pane.
+* **Symphonic Audio Dock**: A feature-rich bottom dashboard presenting comprehensive playback controls, master volume, stream quality diagnostics, and device indicators.
+* **Polished Transitions**: High-performance CSS micro-animations, glassmorphic hover cards, and seamless page transitions.
+
+---
+
+## ⚙️ Core Technical Capabilities
+
+* **Dual-Engine Audio Streaming**: Seamlessly bridges dynamic online catalog lookup with local/offline server-side fallback.
+* **Honest HiFi Playback**: Features a real-time stream analyzer that displays high-fidelity indicator badges only when the backend streams true, lossless FLAC or high-bitrate audio.
+* **IndexedDB Offline Vault**: Automatically caches tracks and playlists locally in the client browser's database for instant, zero-latency offline playback.
+* **Automated Catalog Synchronization**: Resolves metadata, lyrics, and high-quality cover art dynamically, building a unified personal catalog without manual sorting.
+* **State & Queue Management**: Full client-side control over active play queues, liking tracks, historical "Recently Played" tracking, shuffling, and auto-play recommendation chains.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+```mermaid
+graph TD
+    User([User Client]) <--> Frontend[Vite + React App]
+    Frontend <--> |HTML5 Audio & IndexedDB Cache| BrowserCache[(Browser IndexedDB)]
+    Frontend <--> |REST API & WebSockets| Backend[FastAPI Server]
+    Backend <--> |FFmpeg Transcoding & Extract| LocalStorage[(Local Audio Assets)]
+    Backend <--> |Dynamic Stream Resolving| ExternalCatalog[Cloud Audio APIs]
 ```
 
-## ⚙️ Requirements
+### Backend (Sovereign Audio Pipeline)
+* **FastAPI**: Handles high-concurrency requests, streaming responses, and metadata resolution.
+* **yt-dlp**: Orchestrates catalog searching and reliable streaming stream resolution.
+* **FFmpeg**: On-the-fly transcoding, extracting true high-fidelity FLAC/MP3 files.
 
-- Python 3.10+
-- Node.js 20+
-- FFmpeg available on PATH (required for FLAC extraction)
-
-## 🚀 Getting Started
-
-### 1. Run the Backend
-
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate  # On Windows. On macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
-python main.py
-```
-
-The backend server will run at `http://localhost:8000`.
-
-### 2. Run the Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Vite starts the development server at `http://localhost:5173` (or the next available port). Check the console output for the exact URL. You can use your browser's Developer Tools (Device Mode) to test the mobile responsive views.
-
-## ✅ Checks & Linting
-
-```bash
-# Backend checks
-cd backend
-python -m compileall .
-
-# Frontend checks
-cd ../frontend
-npm run lint
-npm run build
-```
-
-## ℹ️ Notes
-
-This is an educational, local clone-style project, not an official Spotify client. Features like Spotify Connect, official Spotify catalog playback, and official user account management are simulated with local, functional equivalents.
+### Frontend (High-Fidelity Interface)
+* **Vite & React**: A blazing-fast development pipeline and optimized production build structure.
+* **HTML5 Audio Engine**: Native player controls wrapped in state-synchronized custom controllers.
+* **IndexedDB API**: Manages binary audio storage and complex offline library schema.
